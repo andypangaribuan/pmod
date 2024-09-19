@@ -7,7 +7,7 @@ def add(a: int, b: int):
 
 
 
-y = add(2, 3)
+# y = add(2, 3)
 
-x = add(1, 2)
-print(f'1 + 2 = {x}')
+# x = add(1, 2)
+# print(f'1 + 2 = {x}')
