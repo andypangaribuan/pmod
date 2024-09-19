@@ -15,8 +15,8 @@ class DBX:
     __conn_tz : str | None = None
 
     def __init__(self, name: str, host: str, port: str, usr: str, pwd: str, tz: str):
-        __conn_tz = tz
-        __conn    = {
+        self.__conn_tz = tz
+        self.__conn    = {
             'database': name,
             'host'    : host,
             'port'    : port,
@@ -31,6 +31,19 @@ class DBX:
                     return self.__fetches(cur, query, vars), None
         except Exception as err:
             return None, err
+    
+
+    def exec(self, query, vars: list = []) -> Exception | None:
+        try:
+            with psycopg2.connect(**self.__conn) as conn:
+                with conn.cursor() as cur:
+                    if len(vars) > 0:
+                        cur.execute(query, vars)
+                    else:
+                        cur.execute(query)
+        except Exception as err:
+            return err
+
 
     def __fetches(self, cur: any, query, vars=[]) -> list:
         if self.__conn_tz is not None:

@@ -1,4 +1,11 @@
 {
+  "files.autoSave": "afterDelay",
+  "editor.minimap.enabled": false,
+  "editor.formatOnSave": true,
+  "editor.guides.bracketPairs": true,
+  "editor.formatOnPaste": true,
+  "editor.rulers": [150],
+  "editor.foldingStrategy": "indentation",
   "fileHeaderComment.parameter": {
     "*": {
       "author": "Andy Pangaribuan",
