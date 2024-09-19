@@ -47,16 +47,18 @@ function venv {
 
 #: activate venv
 function active {
-  set -e
-  echo "source .venv/bin/activate"
-  echo "deactivate"
-  source .venv/bin/activate
+  echo "source .venv/bin/activate" | pbcopy
+  echo "paste then enter"
 }
 
 #: deactive venv
 function deactive {
-  echo "deactivate"
   deactivate
+}
+
+#: show venv active path
+function path {
+  python -c 'import sys; print(sys.prefix)'
 }
 
 #: show dependencies
@@ -67,6 +69,9 @@ function list {
 #: install dependencies
 function install {
   pip install -r ./requirements.txt
+  
+  # printf "%s %s\n" "ipykernel :" "$(pip show ipykernel | grep Version | sed 's/Version: //g')"
+  # pip install 'ipykernel==6.29.5' --force-reinstall
 }
 
 #: space

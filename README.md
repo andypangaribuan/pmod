@@ -1,3 +1,10 @@
+<!--
+How to debug on VSCode
+1. Python: Select Interpreter
+   Then choose your ./.venv/bin/python
+
+-->
+
 # gmod
 
 **Python Extended Module**
@@ -8,6 +15,18 @@ Focus on simplicity, speed and safety.
 
 ```sh
 pip install dist/pmod-0.0.1.tar
+```
+
+## Debug
+```sh
+On VSCode > Python: Select Interpreter
+
+python -m venv .venv
+source .venv/bin/activate
+pip install -r ./requirements.txt
+
+printf "%s %s\n" "ipykernel :" "$(pip show ipykernel | grep Version | sed 's/Version: //g')"
+pip install 'ipykernel==6.29.5' --force-reinstall
 ```
 
 ## Versioning
