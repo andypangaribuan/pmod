@@ -1,0 +1,25 @@
+{
+  "fileHeaderComment.parameter": {
+    "*": {
+      "author": "Andy Pangaribuan",
+      "github": "https://github.com/apangaribuan",
+      "license": [
+        "Copyright (c) ${year}.",
+        " Created by ${author} <${github}>.",
+        "",
+        " This product is protected by copyright and distributed under",
+        " licenses restricting copying, distribution and decompilation.",
+        " All Rights Reserved."
+      ]
+    }
+  },
+  "fileHeaderComment.template": {
+    "*": ["${commentbegin}", "${commentprefix} ${license}", "${commentend}"]
+  },
+  "python.analysis.logLevel": "Trace",
+  "python.analysis.exclude": [
+    "**/data/**",
+    "**/experiments/**",
+    "**/wandb/**"
+  ]
+}

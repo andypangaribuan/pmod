@@ -7,7 +7,12 @@
 # All Rights Reserved.
 #
 
+from dotenv import dotenv_values
 
-def add(a: int, b: int):
-    "add two numbers"
-    return a + b
+
+def get_env(*args) -> dict:
+    env = {}
+    for arg in args:
+        env.update(dotenv_values(arg))
+    return env
+
