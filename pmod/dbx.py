@@ -11,8 +11,8 @@ import psycopg2
 
 
 class DBX:
-    __conn    : dict       = {}
-    __conn_tz : str | None = None
+    __conn: dict = {}
+    __conn_tz: str | None = None
 
     def __init__(self, name: str, host: str, port: str, usr: str, pwd: str, tz: str):
         self.__conn_tz = tz
@@ -23,15 +23,14 @@ class DBX:
             'user'    : usr,
             'password': pwd,
         }
-    
-    def fetches(self, query, vars: list = []) -> tuple[dict[str, any] | None, Exception | None]:
+
+    def fetches(self, query, vars: list = []) -> tuple[list | None, Exception | None]:
         try:
             with psycopg2.connect(**self.__conn) as conn:
                 with conn.cursor() as cur:
                     return self.__fetches(cur, query, vars), None
         except Exception as err:
             return None, err
-    
 
     def exec(self, query, vars: list = []) -> Exception | None:
         try:
@@ -44,11 +43,10 @@ class DBX:
         except Exception as err:
             return err
 
-
     def __fetches(self, cur: any, query, vars=[]) -> list:
         if self.__conn_tz is not None:
             cur.execute(f"SET TIME ZONE '{self.__conn_tz}';")
-        
+
         if len(vars) > 0:
             cur.execute(query, vars)
         else:

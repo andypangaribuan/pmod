@@ -16,3 +16,19 @@ def get_env(*args) -> dict:
         env.update(dotenv_values(arg))
     return env
 
+
+def print_table(data: dict, columns: list = None):
+    if not columns:
+        columns = list(data[0].keys() if data else [])
+    items = [columns]
+
+    for item in data:
+        items.append(['' if item[col] is None else str(
+            item[col]).replace('\n', ' | ') for col in columns])
+
+    sizes = [max(map(len, col)) for col in zip(*items)]
+    formatter = ' | '.join(["{{:<{}}}".format(i) for i in sizes])
+    items.insert(1, ['-' * i for i in sizes])
+
+    for item in items:
+        print(formatter.format(*item))
