@@ -10,3 +10,4 @@
 from pmod.ext import *
 from pmod.core import *
 from pmod.dbx import *
+from pmod.script_server import *
