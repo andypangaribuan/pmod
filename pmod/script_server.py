@@ -7,26 +7,8 @@
 # All Rights Reserved.
 #
 
+from pmod.script_server_model import *
 from pmod.script_server_util import *
-
-
-class ScriptServerConf:
-    project_name    : str = None
-    timezone        : str = None
-    git_repo        : str = None
-    git_id          : str = None
-    git_user        : str = None
-    git_pass        : str = None
-    dockerfile_path : str  = None
-
-
-class ScriptServerEnv:
-    timezone            : str = None
-    hosting_type        : str = None # types: gcp
-    deployment_type     : str = None # types: k8s
-    container_cloud_sdk : str = None  # only for hosting_type = gcp
-    git_prev_branch     : str = None
-    git_branch          : str = None
 
 
 class ScripServer:
@@ -49,11 +31,11 @@ class ScripServer:
             case 'gitlab.com':
                 self.__repository_type = 'gitlab'
             case _:
-                print('only support gitlab.com repository')
+                print(f'\nonly support gitlab.com repository')
                 exit()
 
         if self.__stg_env is None and self.__rc_env is None and self.__prod_env is None:
-            print('have no env configured')
+            print(f'\nhave no env configured')
             exit()
         
         if self.__stg_env is not None and self.__rc_env is not None and self.__prod_env is not None:
@@ -63,7 +45,7 @@ class ScripServer:
         elif self.__stg_env is not None:
             self.__select_env(type='s')
         else:
-            print('no matching env combination')
+            print(f'\nno matching env combination')
             exit()
         
         self.__gitlab_diff_branch()
@@ -79,16 +61,25 @@ class ScripServer:
                 env = self.__util.choose('[ask] choose environment?', ['stg'])
         
         if env is None:
-            print('no environment selected, terminated!')
+            print(f'\nno environment selected, terminated!')
             exit()
         
         match env:
             case 'stg':
-                self.__select_env = self.__stg_env
+                self.__selected_env = self.__stg_env
             case 'rc':
-                self.__select_env = self.__rc_env
+                self.__selected_env = self.__rc_env
             case 'prod':
-                self.__select_env = self.__prod_env
+                self.__selected_env = self.__prod_env
 
     def __gitlab_diff_branch(self):
-        print(f'call gitlab api: diff branch ({self.__selected_env.git_prev_branch} → {self.__selected_env.git_branch})')
+        print(f'\ncall gitlab api: diff branch ({self.__selected_env.git_prev_branch} → {self.__selected_env.git_branch})')
+        diffs, err = self.__util.gitlab_diff_branch(self.__conf, self.__selected_env)
+        if err is not None:
+            print(f'🔴 error: {err}')
+            exit()
+        
+        if diffs == 0:
+            print(f'no changes')
+        else:
+            self.__util.gitlab_create_mr(self.__conf, self.__select_env)
