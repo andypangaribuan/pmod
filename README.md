@@ -19,6 +19,11 @@ pip install https://github.com/andypangaribuan/pmod/releases/download/v0.0.1/pmo
 pip install https://github.com/andypangaribuan/pmod/releases/latest/download/pmod.tar.gz
 ```
 
+## When error occurs
+```sh
+$ pip install psycopg2-binary
+```
+
 ## Debug
 ```sh
 On VSCode > Python: Select Interpreter

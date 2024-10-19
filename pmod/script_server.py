@@ -31,11 +31,11 @@ class ScripServer:
             case 'gitlab.com':
                 self.__repository_type = 'gitlab'
             case _:
-                print(f'\nonly support gitlab.com repository')
+                print(f'\n🔴 only support gitlab.com repository')
                 exit()
 
         if self.__stg_env is None and self.__rc_env is None and self.__prod_env is None:
-            print(f'\nhave no env configured')
+            print(f'\n🔴 have no env configured')
             exit()
         
         if self.__stg_env is not None and self.__rc_env is not None and self.__prod_env is not None:
@@ -45,10 +45,12 @@ class ScripServer:
         elif self.__stg_env is not None:
             self.__select_env(type='s')
         else:
-            print(f'\nno matching env combination')
+            print(f'\n🔴 no matching env combination')
             exit()
-        
+
+        self.__validate()
         self.__gitlab_diff_branch()
+
 
     def __select_env(self, type: str):
         env : str = None
@@ -61,7 +63,7 @@ class ScripServer:
                 env = self.__util.choose('[ask] choose environment?', ['stg'])
         
         if env is None:
-            print(f'\nno environment selected, terminated!')
+            print(f'\n🔴 no environment selected, terminated!')
             exit()
         
         match env:
@@ -71,6 +73,21 @@ class ScripServer:
                 self.__selected_env = self.__rc_env
             case 'prod':
                 self.__selected_env = self.__prod_env
+
+
+    def __validate(self):
+        if self.__selected_env.hosting_type != 'gcp':
+            print(f'\n🔴 hosting type support: gcp')
+            exit()
+
+        if self.__selected_env.deployment_type != 'k8s':
+            print(f'\n🔴 hosting type support: gcp')
+            exit()
+
+        if self.__selected_env.container_cloud_sdk is None:
+            print(f'\n🔴 empty container_cloud_sdk')
+            exit()
+
 
     def __gitlab_diff_branch(self):
         print(f'\ncall gitlab api: diff branch ({self.__selected_env.git_prev_branch} → {self.__selected_env.git_branch})')
@@ -82,4 +99,4 @@ class ScripServer:
         if diffs == 0:
             print(f'no changes')
         else:
-            self.__util.gitlab_create_mr(self.__conf, self.__select_env)
+            self.__util.gitlab_create_mr(self.__conf, self.__selected_env)

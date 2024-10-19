@@ -10,6 +10,7 @@
 import time
 import requests
 from typing import Optional
+from packaging.version import Version
 from pmod.script_server_model import *
 
 
@@ -77,3 +78,21 @@ class ScriptServerUtil:
         print(f'🟠 please do manual MR')
         print(f'url: {url}')
         exit()
+
+
+    def get_last_index_version(self, ver: Version) -> tuple[int, int]:
+        last_index = len(ver.release) - 1
+        return last_index, ver.release[last_index]
+
+
+    def increase_version(self, ver: Version) -> str:
+        if ver.pre is None:
+            last_index, value = self.get_last_index_version(ver)
+            ls = [str(v) for v in ver.release]
+            ls[last_index] = str(value + 1)
+            return '.'.join(ls)
+
+        pre_name, pre_ver = ver.pre
+        ls = [str(v) for v in ver.release]
+        new_version = '.'.join(ls)
+        return f'{new_version}.{pre_name}{pre_ver+1}'
