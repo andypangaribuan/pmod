@@ -15,12 +15,17 @@ class ScriptServerConf:
     git_user       : str = None
     git_pass       : str = None
     dockerfile_path: str = None
+    image_name     : str = None
 
 
 class ScriptServerEnv:
-    timezone           : str = None
-    hosting_type       : str = None  # types: gcp
-    deployment_type    : str = None  # types: k8s
-    container_cloud_sdk: str = None  # only for hosting_type = gcp
-    git_prev_branch    : str = None
-    git_branch         : str = None
+    timezone                          : str = None
+    hosting_type                      : str = None  # types: gcp
+    deployment_type                   : str = None  # types: k8s
+    image_registry                    : str = None  # types: gcp-artifact-registry
+    gcp_artifact_registry_location    : str = None
+    gcp_artifact_registry_repository  : str = None
+    gcp_artifact_registry_package     : str = None
+    container_cloud_sdk               : str = None  # only for hosting_type = gcp
+    git_prev_branch                   : str = None
+    git_branch                        : str = None

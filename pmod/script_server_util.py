@@ -9,12 +9,18 @@
 
 import time
 import requests
+import subprocess
 from typing import Optional
 from packaging.version import Version
 from pmod.script_server_model import *
 
 
 class ScriptServerUtil:
+    def sh_get(self, cmd: str) -> tuple[str, str]:
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        return process.communicate()
+
+
     def join_words(self, items: list[str], unionSeparator: str = ',', lastSeparator: str = 'and') -> str:
         if len(items) > 2:
             return '%s %s %s' % (f'{unionSeparator} '.join(items[:-1]), lastSeparator, items[-1])
@@ -57,8 +63,8 @@ class ScriptServerUtil:
         return value
 
 
-    def gitlab_diff_branch(self, conf: ScriptServerConf, selected_env: ScriptServerEnv) -> tuple[Optional[int], Optional[str]]:
-        url: str = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/compare?from={selected_env.git_prev_branch}&to={selected_env.git_branch}&straight=true'
+    def gitlab_diff_branch(self, conf: ScriptServerConf, branch_from: str, branch_to: str) -> tuple[Optional[int], Optional[str]]:
+        url: str = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/compare?from={branch_from}&to={branch_to}&straight=true'
         headers: dict[str, str] = {'PRIVATE-TOKEN': conf.git_pass}
         res = requests.get(url, headers=headers)
         if res.status_code != 200:
@@ -96,3 +102,45 @@ class ScriptServerUtil:
         ls = [str(v) for v in ver.release]
         new_version = '.'.join(ls)
         return f'{new_version}.{pre_name}{pre_ver+1}'
+
+
+    def fetch_latest_image_version(self, env: ScriptServerEnv, env_name: str) -> tuple[str, str]:
+        match env.image_registry:
+            case 'gcp-artifact-registry':
+                print(f'\n→ call gcloud api: get image last version on {env_name}')
+
+                cmd: str = 'chroot /hostfs /bin/bash -c "docker exec -it %s %s"'
+                cmd = cmd % (
+                    env.container_cloud_sdk,
+                    'gcloud artifacts tags list --location=%s --repository=%s --package=%s --format=\'table(TAG)\'',
+                )
+                cmd = cmd % (env.gcp_artifact_registry_location, env.gcp_artifact_registry_repository, env.gcp_artifact_registry_package)
+
+                out, err = self.sh_get(cmd)
+                if err != "":
+                    return None, err
+                if 'TAG' not in out:
+                    return None, f'TAG not found in {out}'
+                
+                lines = out.splitlines()
+                image_version : str = None
+
+                for line in lines:
+                    try:
+                        version = Version(line)
+                        if image_version is None:
+                            image_version = line
+                            continue
+
+                        if version > Version(image_version):
+                            image_version = line
+                    except Exception as err:
+                        ...
+
+                if image_version is None:
+                    return None, 'cannot get latest image version'
+
+                return image_version, None
+
+            case _:
+                return None
