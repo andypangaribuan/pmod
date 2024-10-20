@@ -38,6 +38,7 @@ class ScripServer:
     def run(self):
         self.__validate()
         self.__select_env()
+        self.__validate_selected()
         self.__gitlab_diff_branch()
         self.__get_image_version()
         self.__diff_branch_with_tag_version()
@@ -66,16 +67,28 @@ class ScripServer:
             print(f'\n🔴 no matching workflow env')
             exit()
 
-        if self.__selected_env.hosting_type != 'gcp':
-            print(f'\n🔴 hosting type support: gcp')
+        if self.__stg_env is not None and self.__stg_env.hosting_type != 'gcp':
+            print(f'\n🔴 [stg-env] hosting type support: gcp')
             exit()
 
-        if self.__selected_env.deployment_type != 'k8s':
-            print(f'\n🔴 hosting type support: gcp')
+        if self.__rc_env is not None and self.__rc_env.hosting_type != 'gcp':
+            print(f'\n🔴 [rc-env] hosting type support: gcp')
             exit()
 
-        if self.__selected_env.container_cloud_sdk is None:
-            print(f'\n🔴 empty container_cloud_sdk')
+        if self.__prod_env is not None and self.__prod_env.hosting_type != 'gcp':
+            print(f'\n🔴 [prod-env] hosting type support: gcp')
+            exit()
+
+        if self.__stg_env is not None and self.__stg_env.deployment_type != 'k8s':
+            print(f'\n🔴 [stg-env] deployment type support: k8s')
+            exit()
+
+        if self.__rc_env is not None and self.__rc_env.deployment_type != 'k8s':
+            print(f'\n🔴 [rc-env] deployment type support: k8s')
+            exit()
+
+        if self.__prod_env is not None and self.__prod_env.deployment_type != 'k8s':
+            print(f'\n🔴 [prod-env] deployment type support: k8s')
             exit()
 
         if self.__stg_env is not None and self.__stg_env.image_registry != 'gcp-artifact-registry':
@@ -111,6 +124,12 @@ class ScripServer:
                 self.__selected_env = self.__rc_env
             case 'prod':
                 self.__selected_env = self.__prod_env
+
+
+    def __validate_selected(self):
+        if self.__selected_env.container_cloud_sdk is None:
+            print(f'\n🔴 empty container_cloud_sdk')
+            exit()
 
 
     def __gitlab_diff_branch(self):
@@ -189,14 +208,15 @@ class ScripServer:
 
 
     def __diff_branch_with_tag_version(self):
-        print(f'\n→ call gitlab api: diff (branch:{self.__selected_env.git_branch} → tag:v{self.__current_image_version})')
-        diffs, err = self.__util.gitlab_diff_branch(self.__conf, self.__selected_env.git_branch, f'v{self.__current_image_version}')
+        current_image_version: str = self.__util.get_version_text(self.__current_image_version)
+        print(f'\n→ call gitlab api: diff (branch:{self.__selected_env.git_branch} → tag:v{current_image_version})')
+        diffs, err = self.__util.gitlab_diff_branch(self.__conf, self.__selected_env.git_branch, f'v{current_image_version}')
         if err is not None:
             print(f'🔴 error: {err}')
             exit()
 
         if diffs == 0:
-            print(f"no changes from branch '{self.__selected_env.git_branch}' with last_version 'v{self.__current_image_version}'")
+            print(f"no changes from branch '{self.__selected_env.git_branch}' with tag 'v{current_image_version}'")
             exit()
 
         print(f'have {diffs} diff, good to go')
@@ -280,5 +300,5 @@ class ScripServer:
         if self.__user_next_version is None:
             print(f'\n🔴 cannot give you the preferable next version')
             exit()
-        
-        print(f'❖ preferable next version: {self.__user_next_version}')
+
+        print(f'❖ preferable next version: {self.__util.get_version_text(self.__user_next_version)}')

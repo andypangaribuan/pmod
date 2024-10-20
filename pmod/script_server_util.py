@@ -61,6 +61,14 @@ class ScriptServerUtil:
                 return None
 
         return value
+    
+
+    def get_version_text(self, ver: Version) -> str:
+        if ver is None:
+            return ''
+        if ver.is_prerelease:
+            return f'{ver.major}.{ver.minor}.{ver.micro}.{ver.pre[0]}{ver.pre[1]}'
+        return f'{ver.major}.{ver.minor}.{ver.micro}'
 
 
     def gitlab_diff_branch(self, conf: ScriptServerConf, branch_from: str, branch_to: str) -> tuple[Optional[int], Optional[str]]:
@@ -132,13 +140,10 @@ class ScriptServerUtil:
                             image_version = version
                             continue
 
-                        if version > Version(image_version):
+                        if version > image_version:
                             image_version = version
                     except Exception as err:
                         ...
-
-                # if image_version is None:
-                #     return None, 'cannot get latest image version'
 
                 return image_version, None
 
