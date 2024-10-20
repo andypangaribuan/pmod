@@ -237,15 +237,31 @@ class ScripServer:
 
                     self.__user_next_version = Version(f'{self.__current_image_version.major}.{self.__current_image_version.minor}.{self.__current_image_version.micro+1}.1')
                     return
+                
+                print(f'🔴 cannot suggest next image version')
+                exit()
 
             case 'srp: rc':
+                if self.__current_image_version is None and self.__below_env_image_version is None:
+                    print(f'🔴 below version not found, expected have stg image version')
+                    exit()
+
+                rc_version_from_below_env : Version = Version(f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}.rc1')
+
                 if self.__current_image_version is None:
-                    if self.__below_env_image_version is None:
-                        self.__user_next_version = rc_start_version
+                    self.__user_next_version = rc_version_from_below_env
+                    return
+
+                if self.__below_env_image_version.major == self.__current_image_version.major:     # X._._._
+                    if self.__below_env_image_version.minor > self.__current_image_version.minor:  # O.X._._
+                        self.__user_next_version = rc_version_from_below_env
                         return
                     
-                    self.__user_next_version = Version(
-                        f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}.rc1')
+                    if self.__below_env_image_version.micro > self.__current_image_version.micro:  # O.O.X._
+                        self.__user_next_version = rc_version_from_below_env
+                        return
+
+                    self.__user_next_version = self.__util.increase_version(self.__current_image_version)
                     return
 
 
