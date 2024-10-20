@@ -7,6 +7,7 @@
 # All Rights Reserved.
 #
 
+from packaging.version import Version
 from pmod.script_server_model import *
 from pmod.script_server_util import *
 
@@ -21,9 +22,10 @@ class ScripServer:
     __selected_env            : ScriptServerEnv  = None
     __selected_env_code       : str              = None
     __workflow_env_code       : str              = None
-    __current_image_version   : str              = None
-    __below_env_image_version : str              = None
-    __above_env_image_version : str              = None
+    __current_image_version   : Version          = None
+    __below_env_image_version : Version          = None
+    __above_env_image_version : Version          = None
+    __user_next_version       : Version          = None
 
 
     def __init__(self, conf: ScriptServerConf, stg_env: ScriptServerEnv = None, rc_env: ScriptServerEnv = None, prod_env: ScriptServerEnv = None):
@@ -75,15 +77,15 @@ class ScripServer:
         if self.__selected_env.container_cloud_sdk is None:
             print(f'\n🔴 empty container_cloud_sdk')
             exit()
-        
+
         if self.__stg_env is not None and self.__stg_env.image_registry != 'gcp-artifact-registry':
             print(f'\n🔴 [stg-env] supported image registry: gcp-artifact-registry')
             exit()
-        
+
         if self.__rc_env is not None and self.__rc_env.image_registry != 'gcp-artifact-registry':
             print(f'\n🔴 [rc-env] supported image registry: gcp-artifact-registry')
             exit()
-        
+
         if self.__prod_env is not None and self.__prod_env.image_registry != 'gcp-artifact-registry':
             print(f'\n🔴 [prod-env] supported image registry: gcp-artifact-registry')
             exit()
@@ -97,11 +99,11 @@ class ScripServer:
                 self.__selected_env_code = self.__util.choose('[ask] choose environment?', ['stg', 'prod'])
             case 's':
                 self.__selected_env_code = self.__util.choose('[ask] choose environment?', ['stg'])
-        
+
         if self.__selected_env_code is None:
             print(f'\n🔴 no environment selected, terminated!')
             exit()
-        
+
         match self.__selected_env_code:
             case 'stg':
                 self.__selected_env = self.__stg_env
@@ -117,7 +119,7 @@ class ScripServer:
         if err is not None:
             print(f'🔴 error: {err}')
             exit()
-        
+
         if diffs == 0:
             print(f'no changes')
         else:
@@ -159,10 +161,10 @@ class ScripServer:
                     case 'stg':
                         current = [self.__stg_env, 'stg']
 
-        err                    : str = None
-        current_version        : str = None
-        below_env_image_version: str = None
-        above_env_image_version: str = None
+        err                     : str     = None
+        current_version         : Version = None
+        below_env_image_version : Version = None
+        above_env_image_version : Version = None
 
         current_version, err = self.__util.fetch_latest_image_version(current[0], current[1])
         if err is not None:
@@ -174,7 +176,7 @@ class ScripServer:
             if err is not None:
                 print(f'🔴 error: {err}')
                 exit()
-        
+
         if above is not None:
             above_env_image_version, err = self.__util.fetch_latest_image_version(above[0], above[1])
             if err is not None:
@@ -201,7 +203,49 @@ class ScripServer:
 
 
     def __get_user_next_version(self):
+        stg_start_version  : Version = Version('1.0.0.0')
+        rc_start_version   : Version = Version('1.0.0.rc1')
+        prod_start_version : Version = Version('1.0.0')
+        code               : str     = f'{self.__workflow_env_code}: {self.__selected_env_code}'
+
         match self.__workflow_env_code:
-            case 'srp'
+            case 's: stg':
+                if self.__current_image_version is None:
+                    self.__user_next_version = stg_start_version
+                    return
+                
+                self.__user_next_version = self.__util.increase_version(self.__current_image_version)
+                return
+
+            case 'sp: stg' | 'srp: stg':
+                if self.__current_image_version is None:
+                    self.__user_next_version = stg_start_version
+                    return
+
+                if self.__above_env_image_version is None:
+                    self.__user_next_version = self.__util.increase_version(self.__current_image_version)
+                    return
+
+                if self.__current_image_version.major == self.__above_env_image_version.major:     # X._._._
+                    if self.__current_image_version.minor > self.__above_env_image_version.minor:  # O.X._._
+                        self.__user_next_version = self.__util.increase_version(self.__current_image_version)
+                        return
+
+                    if self.__current_image_version.micro > self.__above_env_image_version.micro:  # O.O.X._
+                        self.__user_next_version = self.__util.increase_version(self.__current_image_version)
+                        return
+
+                    self.__user_next_version = Version(f'{self.__current_image_version.major}.{self.__current_image_version.minor}.{self.__current_image_version.micro+1}.1')
+                    return
+
+            case 'srp: rc':
+                if self.__current_image_version is None:
+                    if self.__below_env_image_version is None:
+                        self.__user_next_version = rc_start_version
+                        return
+                    
+                    self.__user_next_version = Version(
+                        f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}.rc1')
+                    return
 
 

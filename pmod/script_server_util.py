@@ -104,7 +104,7 @@ class ScriptServerUtil:
         return f'{new_version}.{pre_name}{pre_ver+1}'
 
 
-    def fetch_latest_image_version(self, env: ScriptServerEnv, env_name: str) -> tuple[str, str]:
+    def fetch_latest_image_version(self, env: ScriptServerEnv, env_name: str) -> tuple[Version, str]:
         match env.image_registry:
             case 'gcp-artifact-registry':
                 print(f'\n→ call gcloud api: get image last version on {env_name}')
@@ -123,22 +123,22 @@ class ScriptServerUtil:
                     return None, f'TAG not found in {out}'
                 
                 lines = out.splitlines()
-                image_version : str = None
+                image_version: Version = None
 
                 for line in lines:
                     try:
                         version = Version(line)
                         if image_version is None:
-                            image_version = line
+                            image_version = version
                             continue
 
                         if version > Version(image_version):
-                            image_version = line
+                            image_version = version
                     except Exception as err:
                         ...
 
-                if image_version is None:
-                    return None, 'cannot get latest image version'
+                # if image_version is None:
+                #     return None, 'cannot get latest image version'
 
                 return image_version, None
 
