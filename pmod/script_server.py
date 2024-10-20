@@ -203,19 +203,18 @@ class ScripServer:
 
 
     def __get_user_next_version(self):
-        stg_start_version  : Version = Version('1.0.0.0')
-        rc_start_version   : Version = Version('1.0.0.rc1')
-        prod_start_version : Version = Version('1.0.0')
-        code               : str     = f'{self.__workflow_env_code}: {self.__selected_env_code}'
+        stg_start_version: Version = Version('1.0.0.0')
+        code             : str     = f'{self.__workflow_env_code}: {self.__selected_env_code}'
 
-        match self.__workflow_env_code:
+        match code:
             case 's: stg':
                 if self.__current_image_version is None:
                     self.__user_next_version = stg_start_version
                     return
-                
+
                 self.__user_next_version = self.__util.increase_version(self.__current_image_version)
                 return
+
 
             case 'sp: stg' | 'srp: stg':
                 if self.__current_image_version is None:
@@ -226,7 +225,7 @@ class ScripServer:
                     self.__user_next_version = self.__util.increase_version(self.__current_image_version)
                     return
 
-                if self.__current_image_version.major == self.__above_env_image_version.major:     # X._._._
+                if self.__current_image_version.major >= self.__above_env_image_version.major:     # X._._._
                     if self.__current_image_version.minor > self.__above_env_image_version.minor:  # O.X._._
                         self.__user_next_version = self.__util.increase_version(self.__current_image_version)
                         return
@@ -237,31 +236,49 @@ class ScripServer:
 
                     self.__user_next_version = Version(f'{self.__current_image_version.major}.{self.__current_image_version.minor}.{self.__current_image_version.micro+1}.1')
                     return
-                
-                print(f'🔴 cannot suggest next image version')
-                exit()
+
+
 
             case 'srp: rc':
                 if self.__current_image_version is None and self.__below_env_image_version is None:
-                    print(f'🔴 below version not found, expected have stg image version')
+                    print(f'\n🔴 below version not found, expected have stg image version')
                     exit()
 
-                rc_version_from_below_env : Version = Version(f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}.rc1')
-
-                if self.__current_image_version is None:
-                    self.__user_next_version = rc_version_from_below_env
+                if (
+                        self.__current_image_version is None or
+                        self.__below_env_image_version.major > self.__current_image_version.major or # X._._._
+                        self.__below_env_image_version.minor > self.__current_image_version.minor or # O.X._._
+                        self.__below_env_image_version.micro > self.__current_image_version.micro    # O.O.X._
+                    ):
+                    self.__user_next_version = Version(f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}.rc1')
                     return
 
-                if self.__below_env_image_version.major == self.__current_image_version.major:     # X._._._
-                    if self.__below_env_image_version.minor > self.__current_image_version.minor:  # O.X._._
-                        self.__user_next_version = rc_version_from_below_env
-                        return
-                    
-                    if self.__below_env_image_version.micro > self.__current_image_version.micro:  # O.O.X._
-                        self.__user_next_version = rc_version_from_below_env
-                        return
+                self.__user_next_version = self.__util.increase_version(self.__current_image_version)
+                return
 
-                    self.__user_next_version = self.__util.increase_version(self.__current_image_version)
+
+            case 'sp: prod' | 'srp: prod':
+                if self.__current_image_version is None and self.__below_env_image_version is None:
+                    if self.__workflow_env_code == 'sp':
+                        print(f'\n🔴 below version not found, expected have stg image version')
+                    if self.__workflow_env_code == 'srp':
+                        print(f'\n🔴 below version not found, expected have rc image version')
+                    exit()
+
+                if (
+                    self.__current_image_version is None or
+                    self.__below_env_image_version.major > self.__current_image_version.major or  # X._._._
+                    self.__below_env_image_version.minor > self.__current_image_version.minor or  # O.X._._
+                    self.__below_env_image_version.micro > self.__current_image_version.micro     # O.O.X._
+                ):
+                    self.__user_next_version = Version(f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}')
                     return
 
+                self.__user_next_version = self.__util.increase_version(self.__current_image_version)
+                return
 
+        if self.__user_next_version is None:
+            print(f'\n🔴 cannot give you the preferable next version')
+            exit()
+        
+        print(f'❖ preferable next version: {self.__user_next_version}')
