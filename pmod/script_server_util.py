@@ -28,6 +28,14 @@ class ScriptServerUtil:
             return f' {lastSeparator} '.join(items)
 
 
+    def version_parse(self, ver: str) -> tuple[Version, bool]:
+        try:
+            v = Version(ver)
+            return v, True
+        except Exception:
+            return None, False
+
+
     def choose(self, message: str, items: list[str]) -> str:
         print(f'{message} ({self.join_words(items, lastSeparator="or")})')
         selected: str = None
@@ -68,7 +76,7 @@ class ScriptServerUtil:
             return ''
         if ver.is_prerelease:
             return f'{ver.major}.{ver.minor}.{ver.micro}.{ver.pre[0]}{ver.pre[1]}'
-        return f'{ver.major}.{ver.minor}.{ver.micro}'
+        return ver.public
 
 
     def gitlab_diff_branch(self, conf: ScriptServerConf, branch_from: str, branch_to: str) -> tuple[Optional[int], Optional[str]]:

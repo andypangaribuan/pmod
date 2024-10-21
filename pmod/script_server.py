@@ -25,6 +25,7 @@ class ScripServer:
     __current_image_version   : Version          = None
     __below_env_image_version : Version          = None
     __above_env_image_version : Version          = None
+    __prefer_next_version     : Version          = None
     __user_next_version       : Version          = None
 
 
@@ -40,9 +41,11 @@ class ScripServer:
         self.__select_env()
         self.__validate_selected()
         self.__gitlab_diff_branch()
-        self.__get_image_version()
+        self.__get_current_image_version()
         self.__diff_branch_with_tag_version()
+        self.__get_below_or_above_image_version()
         self.__get_user_next_version()
+        self.__ask_user_next_version()
 
 
     def __validate(self):
@@ -145,8 +148,29 @@ class ScripServer:
             self.__util.gitlab_create_mr(self.__conf, self.__selected_env)
 
 
-    def __get_image_version(self):
-        current : list = None
+    def __get_current_image_version(self):
+        current: list = None
+
+        match self.__selected_env_code:
+            case 'stg':
+                current = [self.__stg_env, 'stg']
+            case 'rc':
+                current = [self.__rc_env, 'rc']
+            case 'prod':
+                current = [self.__prod_env, 'prod']
+
+        err: str = None
+        current_version: Version = None
+
+        current_version, err = self.__util.fetch_latest_image_version(current[0], current[1])
+        if err is not None:
+            print(f'🔴 error: {err}')
+            exit()
+
+        self.__current_image_version = current_version
+
+
+    def __get_below_or_above_image_version(self):
         below   : list = None
         above   : list = None
 
@@ -154,41 +178,25 @@ class ScripServer:
             case 'srp':
                 match self.__selected_env_code:
                     case 'stg':
-                        current = [self.__stg_env, 'stg']
                         above = [self.__rc_env, 'rc']
                     
                     case 'rc':
-                        current = [self.__rc_env, 'rc']
                         below = [self.__stg_env, 'stg']
                     
                     case 'prod':
-                        current = [self.__prod_env, 'prod']
                         below = [self.__rc_env, 'rc']
 
             case 'sp':
                 match self.__selected_env_code:
                     case 'stg':
-                        current = [self.__stg_env, 'stg']
                         above = [self.__prod_env, 'prod']
                         
                     case 'prod':
-                        current = [self.__prod_env, 'prod']
                         below = [self.__stg_env, 'stg']
 
-            case 's':
-                match self.__selected_env_code:
-                    case 'stg':
-                        current = [self.__stg_env, 'stg']
-
         err                     : str     = None
-        current_version         : Version = None
         below_env_image_version : Version = None
         above_env_image_version : Version = None
-
-        current_version, err = self.__util.fetch_latest_image_version(current[0], current[1])
-        if err is not None:
-            print(f'🔴 error: {err}')
-            exit()
 
         if below is not None:
             below_env_image_version, err = self.__util.fetch_latest_image_version(below[0], below[1])
@@ -202,7 +210,6 @@ class ScripServer:
                 print(f'🔴 error: {err}')
                 exit()
 
-        self.__current_image_version   = current_version
         self.__below_env_image_version = below_env_image_version
         self.__above_env_image_version = above_env_image_version
 
@@ -229,32 +236,32 @@ class ScripServer:
         match code:
             case 's: stg':
                 if self.__current_image_version is None:
-                    self.__user_next_version = stg_start_version
+                    self.__prefer_next_version = stg_start_version
                     return
 
-                self.__user_next_version = self.__util.increase_version(self.__current_image_version)
+                self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
                 return
 
 
             case 'sp: stg' | 'srp: stg':
                 if self.__current_image_version is None:
-                    self.__user_next_version = stg_start_version
+                    self.__prefer_next_version = stg_start_version
                     return
 
                 if self.__above_env_image_version is None:
-                    self.__user_next_version = self.__util.increase_version(self.__current_image_version)
+                    self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
                     return
 
                 if self.__current_image_version.major >= self.__above_env_image_version.major:     # X._._._
                     if self.__current_image_version.minor > self.__above_env_image_version.minor:  # O.X._._
-                        self.__user_next_version = self.__util.increase_version(self.__current_image_version)
+                        self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
                         return
 
                     if self.__current_image_version.micro > self.__above_env_image_version.micro:  # O.O.X._
-                        self.__user_next_version = self.__util.increase_version(self.__current_image_version)
+                        self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
                         return
 
-                    self.__user_next_version = Version(f'{self.__current_image_version.major}.{self.__current_image_version.minor}.{self.__current_image_version.micro+1}.1')
+                    self.__prefer_next_version = Version(f'{self.__current_image_version.major}.{self.__current_image_version.minor}.{self.__current_image_version.micro+1}.1')
                     return
 
 
@@ -270,10 +277,10 @@ class ScripServer:
                         self.__below_env_image_version.minor > self.__current_image_version.minor or # O.X._._
                         self.__below_env_image_version.micro > self.__current_image_version.micro    # O.O.X._
                     ):
-                    self.__user_next_version = Version(f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}.rc1')
+                    self.__prefer_next_version = Version(f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}.rc1')
                     return
 
-                self.__user_next_version = self.__util.increase_version(self.__current_image_version)
+                self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
                 return
 
 
@@ -291,14 +298,77 @@ class ScripServer:
                     self.__below_env_image_version.minor > self.__current_image_version.minor or  # O.X._._
                     self.__below_env_image_version.micro > self.__current_image_version.micro     # O.O.X._
                 ):
-                    self.__user_next_version = Version(f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}')
+                    self.__prefer_next_version = Version(f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}')
                     return
 
-                self.__user_next_version = self.__util.increase_version(self.__current_image_version)
+                self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
                 return
 
-        if self.__user_next_version is None:
+        if self.__prefer_next_version is None:
             print(f'\n🔴 cannot give you the preferable next version')
             exit()
 
-        print(f'❖ preferable next version: {self.__util.get_version_text(self.__user_next_version)}')
+
+    def __ask_user_next_version(self):
+        print(f'❖ preferable next version: {self.__util.get_version_text(self.__prefer_next_version)}')
+
+        while self.__user_next_version is None:
+            input_value = input('[ask] please input next version: ')
+            input_value = input_value.strip()
+            input_version, valid = self.__util.version_parse(input_value)
+
+            if not valid:
+                print('🔴 invalid version format')
+                time.sleep(3)
+                self.__util.remove_current_line(2)
+                continue
+
+            match self.__selected_env_code:
+                case 'stg':
+                    err_message: str = None
+
+                    if err_message is None and len(input_version.release) != 4:
+                        err_message = '🔴 version on staging must be using 4 part number'
+
+                    if err_message is None and input_version.major < self.__prefer_next_version.major:
+                        err_message = f'🔴 major version "{input_version.major}" cannot less than prefer next version "{self.__prefer_next_version.major}"'
+
+                    if err_message is None and input_version.major == self.__prefer_next_version.major and input_version.minor < self.__prefer_next_version.minor:
+                        err_message = f'🔴 minor version "{input_version.minor}" cannot less than prefer next version "{self.__prefer_next_version.minor}"'
+
+                    if err_message is None and input_version.major == self.__prefer_next_version.major and input_version.minor == self.__prefer_next_version.minor and input_version.micro < self.__prefer_next_version.micro:
+                        err_message = f'🔴 micro version "{input_version.micro}" cannot less than prefer next version "{self.__prefer_next_version.micro}"'
+
+                    if err_message is None:
+                        _, nano_value = self.__util.get_last_index_version(
+                            input_version)
+                        _, prefer_nano_value = self.__util.get_last_index_version(self.__prefer_next_version)
+                        if nano_value < prefer_nano_value:
+                            err_message = f'🔴 nano version "{nano_value}" cannot less than prefer next version "{prefer_nano_value}"'
+
+                    if err_message is not None:
+                        print(err_message)
+                        time.sleep(3)
+                        self.__util.remove_current_line(2)
+                        continue
+            
+            if self.__prefer_next_version is not None and input_version.public != self.__prefer_next_version.public:
+                print('[ask] preferable next version and yours is not same, continue? (yes, no or cancel)')
+                while True:
+                    input_value = input()
+
+                    if input_value == 'yes' or input_value == 'y':
+                        self.__user_next_version = input_version
+                        break
+
+                    if input_value == 'no' or input_value == 'n':
+                        exit()
+
+                    if input_value == 'cancel' or input_value == 'c':
+                        self.__util.remove_current_line(3)
+                        break
+
+                    self.__util.remove_current_line()
+            else:
+                self.__user_next_version = input
+
