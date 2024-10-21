@@ -7,7 +7,7 @@
 # All Rights Reserved.
 #
 
-import requests
+from typing import Optional
 from packaging.version import Version
 from pmod.script_server_model import *
 from pmod.script_server_util import *
@@ -314,7 +314,26 @@ class ScripServer:
     def __ask_user_next_version(self):
         print(f'\n❖ preferable next version: {self.__util.get_version_text(self.__prefer_next_version)}')
 
+        def validate_major_minor_micro(input_version: Version) -> Optional[str]:
+            if input_version.major < self.__prefer_next_version.major:
+                return f'🔴 major version "{input_version.major}" cannot less than prefer next version "{self.__prefer_next_version.major}"'
+            
+            if input_version.major > self.__prefer_next_version.major:
+                return None
+
+            if input_version.minor < self.__prefer_next_version.minor:
+                return f'🔴 minor version "{input_version.minor}" cannot less than prefer next version "{self.__prefer_next_version.minor}"'
+            
+            if input_version.minor > self.__prefer_next_version.minor:
+                return None
+
+            if input_version.micro < self.__prefer_next_version.micro:
+                return f'🔴 micro version "{input_version.micro}" cannot less than prefer next version "{self.__prefer_next_version.micro}"'
+
+            return None
+
         while self.__user_next_version is None:
+            err_message: str = None
             input_value = input('[ask] please input next version: ')
             input_value = input_value.strip()
             input_version, valid = self.__util.version_parse(input_value)
@@ -325,26 +344,13 @@ class ScripServer:
                 self.__util.remove_current_line(2)
                 continue
 
-            err_message: str = None
-            def validate_major_minor_micro():
-                nonlocal err_message
-                nonlocal input_version
-
-                if err_message is None and input_version.major < self.__prefer_next_version.major:
-                    err_message = f'🔴 major version "{input_version.major}" cannot less than prefer next version "{self.__prefer_next_version.major}"'
-
-                if err_message is None and input_version.major == self.__prefer_next_version.major and input_version.minor < self.__prefer_next_version.minor:
-                    err_message = f'🔴 minor version "{input_version.minor}" cannot less than prefer next version "{self.__prefer_next_version.minor}"'
-
-                if err_message is None and input_version.major == self.__prefer_next_version.major and input_version.minor == self.__prefer_next_version.minor and input_version.micro < self.__prefer_next_version.micro:
-                    err_message = f'🔴 micro version "{input_version.micro}" cannot less than prefer next version "{self.__prefer_next_version.micro}"'
-
             match self.__selected_env_code:
                 case 'stg':
                     if len(input_version.release) != 4:
                         err_message = '🔴 version on staging must be using 4 part number'
 
-                    validate_major_minor_micro()
+                    if err_message is None:
+                        err_message = validate_major_minor_micro(input_version)
 
                     if err_message is None:
                         _, nano_value = self.__util.get_last_index_version(input_version)
@@ -356,7 +362,8 @@ class ScripServer:
                     if len(input_version.release) != 3 or input_version.pre is None:
                         err_message = '🔴 version on rc must be using 3 part number and rc-number'
 
-                    validate_major_minor_micro()
+                    if err_message is None:
+                        err_message = validate_major_minor_micro(input_version)
 
                     if err_message is None and input_version.pre[0] != 'rc':
                         err_message = '🔴 mush have "rc" part'
@@ -368,7 +375,8 @@ class ScripServer:
                     if len(input_version.release) != 3 or f'{input_version.major}.{input_version.minor}.{input_version.micro}' != input_version.public:
                         err_message = '🔴 version on prod must be using 3 part number'
 
-                    validate_major_minor_micro()
+                    if err_message is None:
+                        err_message= validate_major_minor_micro(input_version)
 
             if err_message is not None:
                 print(err_message)

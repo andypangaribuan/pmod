@@ -10,8 +10,7 @@
 import time
 import requests
 import subprocess
-from typing import Any
-from typing import Optional
+from typing import Any, Optional
 from packaging.version import Version
 from pmod.script_server_model import *
 
