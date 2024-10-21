@@ -345,8 +345,7 @@ class ScripServer:
                     validate_major_minor_micro()
 
                     if err_message is None:
-                        _, nano_value = self.__util.get_last_index_version(
-                            input_version)
+                        _, nano_value = self.__util.get_last_index_version(input_version)
                         _, prefer_nano_value = self.__util.get_last_index_version(self.__prefer_next_version)
                         if nano_value < prefer_nano_value:
                             err_message = f'🔴 nano version "{nano_value}" cannot less than prefer next version "{prefer_nano_value}"'
@@ -357,15 +356,15 @@ class ScripServer:
 
                     validate_major_minor_micro()
 
-                    if err_message is None:
-                        if input_version.pre[0] != 'rc':
-                            err_message = '🔴 mush have "rc" part'
-                        if err_message is None and input_version.pre[1] < self.__prefer_next_version.pre[1]:
-                            f'🔴 rc version "{input_version.pre[1]}" cannot less than prefer next version "{self.__prefer_next_version.pre[1]}"'
+                    if err_message is None and input_version.pre[0] != 'rc':
+                        err_message = '🔴 mush have "rc" part'
+
+                    if err_message is None and input_version.pre[1] < self.__prefer_next_version.pre[1]:
+                        err_message = f'🔴 rc version "{input_version.pre[1]}" cannot less than prefer next version "{self.__prefer_next_version.pre[1]}"'
 
                 case 'prod':
-                    if len(input_version.release) != 3:
-                        err_message = '🔴 version on prod must be using 4 part number'
+                    if len(input_version.release) != 3 or f'{input_version.major}.{input_version.minor}.{input_version.micro}' != input_version.public:
+                        err_message = '🔴 version on prod must be using 3 part number'
 
                     validate_major_minor_micro()
 
