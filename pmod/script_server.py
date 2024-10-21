@@ -352,7 +352,7 @@ class ScripServer:
                             err_message = f'🔴 nano version "{nano_value}" cannot less than prefer next version "{prefer_nano_value}"'
 
                 case 'rc':
-                    if len(input_version.release) != 3 or not input_version.is_prerelease:
+                    if len(input_version.release) != 3 or input_version.pre is None:
                         err_message = '🔴 version on rc must be using 3 part number and rc-number'
 
                     validate_major_minor_micro()
