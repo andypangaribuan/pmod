@@ -371,7 +371,7 @@ class ScripServer:
 
             if err_message is not None:
                 print(err_message)
-                time.sleep(3)
+                time.sleep(6)
                 self.__util.remove_current_line(2)
                 continue
 
