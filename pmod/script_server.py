@@ -41,7 +41,7 @@ class ScripServer:
         self.__validate()
         self.__select_env()
         self.__validate_selected()
-        self.__gitlab_diff_branch()
+        self.__git_diff_branch()
         self.__get_current_image_version()
         self.__diff_branch_with_tag_version()
         self.__get_below_or_above_image_version()
@@ -72,39 +72,45 @@ class ScripServer:
             print(f'\n🔴 no matching workflow env')
             exit()
 
-        if self.__stg_env is not None and self.__stg_env.hosting_type != 'gcp':
+
+        # VALIDATE HOSTING TYPES
+        if self.__stg_env is not None and self.__stg_env.hosting_type not in ['gcp']:
             print(f'\n🔴 [stg-env] hosting type support: gcp')
             exit()
 
-        if self.__rc_env is not None and self.__rc_env.hosting_type != 'gcp':
+        if self.__rc_env is not None and self.__rc_env.hosting_type not in ['gcp']:
             print(f'\n🔴 [rc-env] hosting type support: gcp')
             exit()
 
-        if self.__prod_env is not None and self.__prod_env.hosting_type != 'gcp':
+        if self.__prod_env is not None and self.__prod_env.hosting_type not in ['gcp']:
             print(f'\n🔴 [prod-env] hosting type support: gcp')
             exit()
 
-        if self.__stg_env is not None and self.__stg_env.deployment_type != 'k8s':
+
+        # VALIDATE DEPLOYMENT TYPES
+        if self.__stg_env is not None and self.__stg_env.deployment_type not in ['k8s']:
             print(f'\n🔴 [stg-env] deployment type support: k8s')
             exit()
 
-        if self.__rc_env is not None and self.__rc_env.deployment_type != 'k8s':
+        if self.__rc_env is not None and self.__rc_env.deployment_type not in ['k8s']:
             print(f'\n🔴 [rc-env] deployment type support: k8s')
             exit()
 
-        if self.__prod_env is not None and self.__prod_env.deployment_type != 'k8s':
+        if self.__prod_env is not None and self.__prod_env.deployment_type not in ['k8s']:
             print(f'\n🔴 [prod-env] deployment type support: k8s')
             exit()
 
-        if self.__stg_env is not None and self.__stg_env.image_registry != 'gcp-artifact-registry':
+
+        # VALIDATE IMAGE REGISTRY TYPES
+        if self.__stg_env is not None and self.__stg_env.image_registry not in ['gcp-artifact-registry']:
             print(f'\n🔴 [stg-env] supported image registry: gcp-artifact-registry')
             exit()
 
-        if self.__rc_env is not None and self.__rc_env.image_registry != 'gcp-artifact-registry':
+        if self.__rc_env is not None and self.__rc_env.image_registry not in ['gcp-artifact-registry']:
             print(f'\n🔴 [rc-env] supported image registry: gcp-artifact-registry')
             exit()
 
-        if self.__prod_env is not None and self.__prod_env.image_registry != 'gcp-artifact-registry':
+        if self.__prod_env is not None and self.__prod_env.image_registry not in ['gcp-artifact-registry']:
             print(f'\n🔴 [prod-env] supported image registry: gcp-artifact-registry')
             exit()
 
@@ -137,17 +143,23 @@ class ScripServer:
             exit()
 
 
-    def __gitlab_diff_branch(self):
-        print(f'\ncall gitlab api: diff branch ({self.__selected_env.git_prev_branch} → {self.__selected_env.git_branch})')
-        diffs, err = self.__util.gitlab_diff_branch(self.__conf, self.__selected_env.git_prev_branch, self.__selected_env.git_branch)
-        if err is not None:
-            print(f'🔴 error: {err}')
-            exit()
+    def __git_diff_branch(self):
+        match self.__repository_type:
+            case 'gitlab.com':
+                print(f'\ncall gitlab api: diff branch ({self.__selected_env.git_prev_branch} → {self.__selected_env.git_branch})')
+                diffs, err = self.__util.gitlab_diff_branch(self.__conf, self.__selected_env.git_prev_branch, self.__selected_env.git_branch)
+                if err is not None:
+                    print(f'🔴 error: {err}')
+                    exit()
 
-        if diffs == 0:
-            print(f'no changes')
-        else:
-            self.__util.gitlab_create_mr(self.__conf, self.__selected_env)
+                if diffs == 0:
+                    print(f'no changes')
+                else:
+                    self.__util.gitlab_create_mr(self.__conf, self.__selected_env)
+
+            case _:
+                print(f'\n🔴 error: unhandled logic')
+                exit()
 
 
     def __get_current_image_version(self):
@@ -217,18 +229,24 @@ class ScripServer:
 
 
     def __diff_branch_with_tag_version(self):
-        current_image_version: str = self.__util.get_version_text(self.__current_image_version)
-        print(f'\n→ call gitlab api: diff (branch:{self.__selected_env.git_branch} → tag:v{current_image_version})')
-        diffs, err = self.__util.gitlab_diff_branch(self.__conf, self.__selected_env.git_branch, f'v{current_image_version}')
-        if err is not None:
-            print(f'🔴 error: {err}')
-            exit()
+        match self.__repository_type:
+            case 'gitlab.com':
+                current_image_version: str = self.__util.get_version_text(self.__current_image_version)
+                print(f'\n→ call gitlab api: diff (branch:{self.__selected_env.git_branch} → tag:v{current_image_version})')
+                diffs, err_message = self.__util.gitlab_diff_branch(self.__conf, self.__selected_env.git_branch, f'v{current_image_version}')
+                if err_message is not None:
+                    print(f'🔴 error: {err_message}')
+                    exit()
 
-        if diffs == 0:
-            print(f"no changes from branch '{self.__selected_env.git_branch}' with tag 'v{current_image_version}'")
-            exit()
+                if diffs == 0:
+                    print(f"no changes from branch '{self.__selected_env.git_branch}' with tag 'v{current_image_version}'")
+                    exit()
 
-        print(f'have {diffs} diff, good to go')
+                print(f'have {diffs} diff, good to go')
+
+            case _:
+                print(f'\n🔴 error: unhandled logic')
+                exit()
 
 
     def __get_user_next_version(self):
@@ -409,29 +427,34 @@ class ScripServer:
     def __git_tag(self):
         version: str = f'v{self.__util.get_version_text(self.__user_next_version)}'
 
-        if self.__repository_type == 'gitlab.com':
-            print('\n→ find tag on gitlab')
-            tag_exists, err_message = self.__util.gitlab_find_tag(self.__conf, self.__user_next_version)
-            if err_message is not None:
-                print(f'\n🔴 error: {err_message}')
-                exit()
-
-            if tag_exists:
-                print(f'tag {version} already exists')
-                print('\n→ delete the existing tag')
-                err_message = self.__util.gitlab_delete_tag(self.__conf, self.__user_next_version)
+        match self.__repository_type:
+            case 'gitlab.com':
+                print('\n→ find tag on gitlab')
+                tag_exists, err_message = self.__util.gitlab_find_tag(self.__conf, self.__user_next_version)
                 if err_message is not None:
                     print(f'\n🔴 error: {err_message}')
                     exit()
-            else:
-                print(f'tag {version} not exists')
-            
-            print(f'\n→ create git tag {version} from branch {self.__selected_env.git_branch}')
-            err_message = self.__util.gitlab_create_tag(self.__conf, self.__user_next_version, self.__selected_env.git_branch)
-            if err_message is not None:
-                print(f'\n🔴 error: {err_message}')
+
+                if tag_exists:
+                    print(f'tag {version} already exists')
+                    print('\n→ delete the existing tag')
+                    err_message = self.__util.gitlab_delete_tag(self.__conf, self.__user_next_version)
+                    if err_message is not None:
+                        print(f'\n🔴 error: {err_message}')
+                        exit()
+                else:
+                    print(f'tag {version} not exists')
+
+                print(f'\n→ create git tag {version} from branch {self.__selected_env.git_branch}')
+                err_message = self.__util.gitlab_create_tag(self.__conf, self.__user_next_version, self.__selected_env.git_branch)
+                if err_message is not None:
+                    print(f'\n🔴 error: {err_message}')
+                    exit()
+
+                print(f'created, tag:{version}, branch:{self.__selected_env.git_branch}')
+
+            case _:
+                print(f'\n🔴 error: unhandled logic')
                 exit()
-            
-            print(f'created, tag:{version}, branch:{self.__selected_env.git_branch}')
 
 

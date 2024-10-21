@@ -211,4 +211,4 @@ class ScriptServerUtil:
                 return image_version, None
 
             case _:
-                return None
+                return None, 'unhandled logic'
