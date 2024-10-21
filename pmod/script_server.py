@@ -7,6 +7,7 @@
 # All Rights Reserved.
 #
 
+import requests
 from packaging.version import Version
 from pmod.script_server_model import *
 from pmod.script_server_util import *
@@ -46,12 +47,13 @@ class ScripServer:
         self.__get_below_or_above_image_version()
         self.__get_user_next_version()
         self.__ask_user_next_version()
+        self.__git_tag()
 
 
     def __validate(self):
         match self.__conf.git_repo[:10]:
             case 'gitlab.com':
-                self.__repository_type = 'gitlab'
+                self.__repository_type = 'gitlab.com'
             case _:
                 print(f'\n🔴 only support gitlab.com repository')
                 exit()
@@ -393,5 +395,35 @@ class ScripServer:
 
                     self.__util.remove_current_line()
             else:
-                self.__user_next_version = input
+                self.__user_next_version = input_version
+
+
+    def __git_tag(self):
+        version: str = f'v{self.__util.get_version_text(self.__user_next_version)}'
+
+        if self.__repository_type == 'gitlab.com':
+            print('\n→ find tag on gitlab')
+            tag_exists, err_message = self.__util.gitlab_find_tag(self.__conf, self.__user_next_version)
+            if err_message is not None:
+                print(f'\n🔴 error: {err_message}')
+                exit()
+
+            if tag_exists:
+                print(f'tag {version} already exists')
+                print('\n→ delete the existing tag')
+                err_message = self.__util.gitlab_delete_tag(self.__conf, self.__user_next_version)
+                if err_message is not None:
+                    print(f'\n🔴 error: {err_message}')
+                    exit()
+            else:
+                print(f'tag {version} not exists')
+            
+            print(f'\n→ create git tag {version} from branch {self.__selected_env.git_branch}')
+            err_message = self.__util.gitlab_create_tag(self.__conf, self.__user_next_version, self.__selected_env.git_branch)
+            if err_message is not None:
+                print(f'\n🔴 error: {err_message}')
+                exit()
+            
+            print(f'created, tag:{version}, branch:{self.__selected_env.git_branch}')
+
 

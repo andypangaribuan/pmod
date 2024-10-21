@@ -10,6 +10,7 @@
 import time
 import requests
 import subprocess
+from typing import Any
 from typing import Optional
 from packaging.version import Version
 from pmod.script_server_model import *
@@ -74,7 +75,7 @@ class ScriptServerUtil:
     def get_version_text(self, ver: Version) -> str:
         if ver is None:
             return ''
-        if ver.is_prerelease:
+        if ver.pre is not None:
             return f'{ver.major}.{ver.minor}.{ver.micro}.{ver.pre[0]}{ver.pre[1]}'
         return ver.public
 
@@ -100,6 +101,61 @@ class ScriptServerUtil:
         print(f'🟠 please do manual MR')
         print(f'url: {url}')
         exit()
+
+
+    def gitlab_find_tag(self, conf: ScriptServerConf, ver: Version) -> tuple[bool, str]:
+        version: str = f'v{self.get_version_text(ver)}'
+        url: str = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/tags/{version}'
+        headers: dict[str, str] = {'PRIVATE-TOKEN': conf.git_pass}
+        res = requests.get(url, headers=headers)
+        jres = res.json()
+
+        match res.status_code:
+            case 404:
+                message = self.dict_value(jres, ['message'])
+                if message == '404 Tag Not Found':
+                    return False, None
+                
+            case 200:
+                name = self.dict_value(jres, ['name'])
+                if name == version:
+                    return True, None
+
+        return False, f'http code: {res.status_code}\nresponse: {jres}'
+
+    def gitlab_delete_tag(self, conf: ScriptServerConf, ver: Version) -> Optional[str]:
+        version: str = f'v{self.get_version_text(ver)}'
+        url = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/tags/{version}'
+        headers: dict[str, str] = {'PRIVATE-TOKEN': conf.git_pass}
+        res = requests.delete(url, headers=headers)
+
+        if res.status_code not in [200, 202, 204]:
+            resJson: Any = None
+            try:
+                resJson = res.json()
+                return f'http code: {res.status_code}, response: {resJson}'
+            except Exception:
+                return f'http code: {res.status_code}, response: {res.text}'
+
+        return None
+
+
+    def gitlab_create_tag(self, conf: ScriptServerConf, ver: Version, branch: str) -> Optional[str]:
+        version: str = f'v{self.get_version_text(ver)}'
+        url = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/tags?tag_name={version}&ref={branch}'
+        headers: dict[str, str] = {'PRIVATE-TOKEN': conf.git_pass}
+        res = requests.post(url, headers=headers)
+        if res.status_code not in [200, 201]:
+            return f'http code: {res.status_code}, response: {res.json()}'
+
+        try:
+            version_name = self.dict_value(res.json(), ['name'])
+            if version_name == version:
+                return None
+            return f'http code: {res.status_code}, response: {res.json()}'
+        except Exception:
+            return f'invalid output: {res.json()}'
+
 
 
     def get_last_index_version(self, ver: Version) -> tuple[int, int]:
