@@ -325,6 +325,9 @@ class ScripServer:
 
             err_message: str = None
             def validate_major_minor_micro():
+                nonlocal err_message
+                nonlocal input_version
+
                 if err_message is None and input_version.major < self.__prefer_next_version.major:
                     err_message = f'🔴 major version "{input_version.major}" cannot less than prefer next version "{self.__prefer_next_version.major}"'
 
