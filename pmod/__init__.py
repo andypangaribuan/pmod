@@ -12,3 +12,4 @@ from pmod.core import *
 from pmod.dbx import *
 from pmod.script_server import *
 from pmod.script_server_model import *
+from pmod.script_server_user_func import *

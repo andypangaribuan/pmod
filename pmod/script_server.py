@@ -11,6 +11,7 @@ from typing import Optional
 from packaging.version import Version
 from pmod.script_server_model import *
 from pmod.script_server_util import *
+from pmod.script_server_user_func import *
 
 
 class ScripServer:
@@ -19,6 +20,7 @@ class ScripServer:
     __stg_env                 : ScriptServerEnv  = None
     __rc_env                  : ScriptServerEnv  = None
     __prod_env                : ScriptServerEnv  = None
+    __after_clone_func        : callable         = None
     __repository_type         : str              = None
     __selected_env            : ScriptServerEnv  = None
     __selected_env_code       : str              = None
@@ -30,11 +32,12 @@ class ScripServer:
     __user_next_version       : Version          = None
 
 
-    def __init__(self, conf: ScriptServerConf, stg_env: ScriptServerEnv = None, rc_env: ScriptServerEnv = None, prod_env: ScriptServerEnv = None):
+    def __init__(self, conf: ScriptServerConf, stg_env: ScriptServerEnv = None, rc_env: ScriptServerEnv = None, prod_env: ScriptServerEnv = None, after_clone_func: callable = None):
         self.__conf     = conf
         self.__stg_env  = stg_env
         self.__rc_env   = rc_env
         self.__prod_env = prod_env
+        self.__after_clone_func = after_clone_func
 
 
     def run(self):
@@ -50,6 +53,7 @@ class ScripServer:
         self.__create_git_tag()
         self.__perform_git_clone()
         self.__execute_commands_before_image_build()
+        self.__perform_after_clone_func()
 
 
     def __validate(self):
@@ -508,3 +512,14 @@ class ScripServer:
             print(f'\n🔴 error: {err_message}')
             exit()
 
+
+    def __perform_after_clone_func(self):
+        if self.__conf.terminate_when == 'perform-after-clone-func':
+            exit()
+
+        if self.__after_clone_func is None:
+            return
+
+        print('\n→ perform after clone func')
+        user_func = ScriptServerUserFunc(self.__conf, self.__selected_env_code)
+        self.__after_clone_func(user_func)

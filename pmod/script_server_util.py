@@ -239,7 +239,7 @@ class ScriptServerUtil:
 
     def execute_command_before_image_build(self, conf: ScriptServerConf) -> Optional[str]:
         for i in range(len(conf.cmds_before_build)):
-            print(f'\n→ perform command ${i+1}/{len(conf.cmds_before_build)}')
+            print(f'→ perform command {i+1}/{len(conf.cmds_before_build)}')
 
             cmd = 'chroot /hostfs /bin/bash -c "%s"'
             cmd = cmd % 'cd %s; %s'
