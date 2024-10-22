@@ -8,15 +8,17 @@
 #
 
 class ScriptServerConf:
-    image_name     : str = None
-    project_name   : str = None
-    timezone       : str = None
-    git_repo       : str = None
-    git_id         : str = None
-    git_user       : str = None
-    git_pass       : str = None
-    dockerfile_path: str = None
-    host_build_path: str = None
+    image_name        : str       = None
+    project_name      : str       = None
+    timezone          : str       = None
+    git_repo          : str       = None
+    git_id            : str       = None
+    git_user          : str       = None
+    git_pass          : str       = None
+    dockerfile_path   : str       = None
+    host_build_path   : str       = None
+    cmds_before_build : list[str] = []
+    terminate_when    : str       = None
 
 
 class ScriptServerEnv:

@@ -47,8 +47,9 @@ class ScripServer:
         self.__get_below_or_above_image_version()
         self.__get_user_next_version()
         self.__ask_user_next_version()
-        self.__git_tag()
-        self.__git_clone()
+        self.__create_git_tag()
+        self.__perform_git_clone()
+        self.__execute_commands_before_image_build()
 
 
     def __validate(self):
@@ -120,6 +121,9 @@ class ScripServer:
 
 
     def __select_env(self):
+        if self.__conf.terminate_when == 'select-env':
+            exit()
+
         match self.__workflow_env_code:
             case 'srp':
                 self.__selected_env_code = self.__util.choose('[ask] choose environment?', ['stg', 'rc', 'prod'])
@@ -142,12 +146,18 @@ class ScripServer:
 
 
     def __validate_selected(self):
+        if self.__conf.terminate_when == 'validate-selected':
+            exit()
+
         if self.__selected_env.container_cloud_sdk is None:
             print(f'\n🔴 empty container_cloud_sdk')
             exit()
 
 
     def __git_diff_branch(self):
+        if self.__conf.terminate_when == 'git-diff-branch':
+            exit()
+
         if self.__repository_type not in ['gitlab.com']:
             print(f'\n🔴 error: unhandled logic')
             exit()
@@ -166,6 +176,9 @@ class ScripServer:
 
 
     def __get_current_image_version(self):
+        if self.__conf.terminate_when == 'get-current-image-version':
+            exit()
+
         current: list = None
 
         match self.__selected_env_code:
@@ -188,6 +201,9 @@ class ScripServer:
 
 
     def __get_below_or_above_image_version(self):
+        if self.__conf.terminate_when == 'get-below-or-above-image-version':
+            exit()
+
         below   : list = None
         above   : list = None
 
@@ -232,6 +248,9 @@ class ScripServer:
 
 
     def __diff_branch_with_tag_version(self):
+        if self.__conf.terminate_when == 'diff-branch-with-tag-version':
+            exit()
+
         if self.__repository_type not in ['gitlab.com']:
             print(f'\n🔴 error: unhandled logic')
             exit()
@@ -252,6 +271,9 @@ class ScripServer:
 
 
     def __get_user_next_version(self):
+        if self.__conf.terminate_when == 'get-user-next-version':
+            exit()
+
         stg_start_version: Version = Version('1.0.0.0')
         code             : str     = f'{self.__workflow_env_code}: {self.__selected_env_code}'
 
@@ -332,6 +354,9 @@ class ScripServer:
 
 
     def __ask_user_next_version(self):
+        if self.__conf.terminate_when == 'ask-user-next-version':
+            exit()
+
         print(f'\n❖ preferable next version: {self.__util.get_version_text(self.__prefer_next_version)}')
 
         def validate_major_minor_micro(input_version: Version) -> Optional[str]:
@@ -426,7 +451,10 @@ class ScripServer:
                 self.__user_next_version = input_version
 
 
-    def __git_tag(self):
+    def __create_git_tag(self):
+        if self.__conf.terminate_when == 'create-git-tag':
+            exit()
+
         if self.__repository_type not in ['gitlab.com']:
             print(f'\n🔴 error: unhandled logic')
             exit()
@@ -456,13 +484,27 @@ class ScripServer:
                 print(f'\n🔴 error: {err_message}')
                 exit()
 
-            print(f'created, tag:{version}, branch:{self.__selected_env.git_branch}')
 
+    def __perform_git_clone(self):
+        if self.__conf.terminate_when == 'perform-git-clone':
+            exit()
 
-    def __git_clone(self):
         err_message = self.__util.git_clone(self.__conf, self.__user_next_version, self.__repository_type)
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
             exit()
 
+
+    def __execute_commands_before_image_build(self):
+        if self.__conf.terminate_when == 'execute-commands-before-image-build':
+            exit()
+
+        if len(self.__conf.cmds_before_build) == 0:
+            return
+
+        print(f'\n❖ perform commands before image build')
+        err_message = self.__util.execute_command_before_image_build(self.__conf)
+        if err_message is not None:
+            print(f'\n🔴 error: {err_message}')
+            exit()
 
