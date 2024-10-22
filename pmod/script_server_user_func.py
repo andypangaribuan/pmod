@@ -33,10 +33,10 @@ class ScriptServerUserFunc:
 
 
     def write_file(self, file_path: str, content: str) -> Optional[str]:
-        host_file_path = f'{self.__conf.host_build_path}/{file_path}'
+        host_file_path = f'/hostfs{self.__conf.host_build_path}/{file_path}'
 
         try:
-            with open(host_file_path, 'w+') as file:
+            with open(host_file_path, 'w') as file:
                 try:
                     file.write(content)
                 except Exception:
