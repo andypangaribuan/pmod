@@ -7,6 +7,7 @@
 # All Rights Reserved.
 #
 
+import os
 import time
 import requests
 import subprocess
@@ -122,6 +123,7 @@ class ScriptServerUtil:
 
         return False, f'http code: {res.status_code}\nresponse: {jres}'
 
+
     def gitlab_delete_tag(self, conf: ScriptServerConf, ver: Version) -> Optional[str]:
         version: str = f'v{self.get_version_text(ver)}'
         url = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/tags/{version}'
@@ -156,7 +158,6 @@ class ScriptServerUtil:
             return f'invalid output: {res.json()}'
 
 
-
     def get_last_index_version(self, ver: Version) -> tuple[int, int]:
         last_index = len(ver.release) - 1
         return last_index, ver.release[last_index]
@@ -176,39 +177,62 @@ class ScriptServerUtil:
 
 
     def fetch_latest_image_version(self, env: ScriptServerEnv, env_name: str) -> tuple[Version, str]:
-        match env.image_registry:
-            case 'gcp-artifact-registry':
-                print(f'\n→ call gcloud api: get image last version on {env_name}')
+        if env.image_registry not in ['gcp-artifact-registry']:
+            return None, 'unhandled logic'
+        
+        if env.image_registry == 'gcp-artifact-registry':
+            print(f'\n→ call gcloud api: get image last version on {env_name}')
 
-                cmd: str = 'chroot /hostfs /bin/bash -c "docker exec -it %s %s"'
-                cmd = cmd % (
-                    env.container_cloud_sdk,
-                    'gcloud artifacts tags list --location=%s --repository=%s --package=%s --format=\'table(TAG)\'',
-                )
-                cmd = cmd % (env.gcp_artifact_registry_location, env.gcp_artifact_registry_repository, env.gcp_artifact_registry_package)
+            cmd: str = 'chroot /hostfs /bin/bash -c "docker exec -it %s %s"'
+            cmd = cmd % (
+                env.container_cloud_sdk,
+                'gcloud artifacts tags list --location=%s --repository=%s --package=%s --format=\'table(TAG)\'',
+            )
+            cmd = cmd % (env.gcp_artifact_registry_location, env.gcp_artifact_registry_repository, env.gcp_artifact_registry_package)
 
-                out, err = self.sh_get(cmd)
-                if err != "":
-                    return None, err
-                if 'TAG' not in out:
-                    return None, f'TAG not found in {out}'
-                
-                lines = out.splitlines()
-                image_version: Version = None
+            out, err = self.sh_get(cmd)
+            if err != "":
+                return None, err
+            if 'TAG' not in out:
+                return None, f'TAG not found in {out}'
+            
+            lines = out.splitlines()
+            image_version: Version = None
 
-                for line in lines:
-                    try:
-                        version = Version(line)
-                        if image_version is None:
-                            image_version = version
-                            continue
+            for line in lines:
+                try:
+                    version = Version(line)
+                    if image_version is None:
+                        image_version = version
+                        continue
 
-                        if version > image_version:
-                            image_version = version
-                    except Exception as err:
-                        ...
+                    if version > image_version:
+                        image_version = version
+                except Exception as err:
+                    ...
 
-                return image_version, None
+            return image_version, None
 
-            case _:
-                return None, 'unhandled logic'
+
+    def git_clone(self, conf: ScriptServerConf, ver: Version, repository_type: str) -> Optional[str]:
+        if repository_type not in ['gitlab.com']:
+            return 'unhandled logic'
+
+        print(f'\n→ clean the build path directory')
+        version: str = f'v{self.get_version_text(ver)}'
+        print(f'\n→ clone the git project, tag: {version}')
+        cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        cmd = cmd % 'rm -rf %s; mkdir -p %s'
+        cmd = cmd % (conf.host_build_path, conf.host_build_path)
+        err_code = os.system(cmd)
+        if err_code != 0:
+            return f'os error code {err_code}'
+
+        print(f'\n→ perform git clone')
+        cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        cmd = cmd % 'cd %s; git clone --quiet -c advice.detachedHead=false --depth 1 --branch %s https://%s:%s@%s.git .'
+        cmd = cmd % (conf.host_build_path, version, conf.git_user, conf.git_pass, conf.git_repo)
+        err_code = os.system(cmd)
+        if err_code != 0:
+            return f'os error code {err_code}'
+

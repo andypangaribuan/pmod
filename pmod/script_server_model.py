@@ -8,6 +8,7 @@
 #
 
 class ScriptServerConf:
+    image_name     : str = None
     project_name   : str = None
     timezone       : str = None
     git_repo       : str = None
@@ -15,7 +16,7 @@ class ScriptServerConf:
     git_user       : str = None
     git_pass       : str = None
     dockerfile_path: str = None
-    image_name     : str = None
+    host_build_path: str = None
 
 
 class ScriptServerEnv:
