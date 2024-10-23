@@ -581,7 +581,6 @@ class ScripServer:
         if self.__conf.terminate_when == 'perform-build-image':
             exit()
 
-        print('\n❖ perform build image')
         add_build_arg: str = None
         if self.__add_build_arg_func is not None:
             add_build_arg = self.__add_build_arg_func(self.__selected_env_code, self.__util.get_version_text(self.__user_next_version))
@@ -650,7 +649,7 @@ class ScripServer:
 
 
     def __success_message(self):
-        time.sleep(2)
+        time.sleep(3)
         print(f'\n\n')
         print('🟢 success')
         exit()
