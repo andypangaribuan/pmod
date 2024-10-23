@@ -549,7 +549,7 @@ class ScripServer:
         if self.__add_build_arg_func is not None:
             add_build_arg = self.__add_build_arg_func(self.__selected_env_code, self.__util.get_version_text(self.__user_next_version))
 
-        err_message = self.__util.build_image(self.__conf, self.__select_env, self.__user_next_version, add_build_arg)
+        err_message = self.__util.build_image(self.__conf, self.__selected_env, self.__user_next_version, add_build_arg)
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
             exit()

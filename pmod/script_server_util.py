@@ -291,7 +291,6 @@ class ScriptServerUtil:
             cmd = cmd % (conf.host_build_path, cmd_build_2)
             cmd = cmd % (conf.dockerfile_path, version, conf.timezone, add_build_arg, f'{selected_env.image_name}:{version}')
 
-        print(f'cmd: {cmd}')
         err_code = os.system(cmd)
         if err_code != 0:
             return f'os error code {err_code}'
