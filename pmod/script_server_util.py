@@ -467,17 +467,25 @@ class ScriptServerUtil:
                     break
 
             if had_error:
+                if delete_lines > 0:
+                    self.remove_current_line(delete_lines)
+                    delete_lines = 0
+
                 msg = f'🔴 error when parsing the output command\n{out}'
                 msg = msg.strip()
-                delete_lines = msg.split('\n')
+                delete_lines = len(msg.split('\n'))
                 print(msg)
                 last_printed_output = ''
                 continue
 
             if len(rows) == 0:
+                if delete_lines > 0:
+                    self.remove_current_line(delete_lines)
+                    delete_lines = 0
+
                 msg = f'🔴 doesn\'t have any pod, ouput: "{out}"'
                 msg = msg.strip()
-                delete_lines = msg.split('\n')
+                delete_lines = len(msg.split('\n'))
                 print(msg)
                 last_printed_output = ''
                 continue
