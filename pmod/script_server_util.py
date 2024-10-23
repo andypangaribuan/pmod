@@ -373,10 +373,15 @@ class ScriptServerUtil:
 
 
     def deploy_on_gcp_k8s(self, selected_env: ScriptServerEnv, ver: Version) -> Optional[str]:
-        version: str = self.get_version_text(ver)
+        image: str = f'{selected_env.image_name}:{self.get_version_text(ver)}'
         cmd = 'chroot /hostfs /bin/bash -c "%s"'
-        cmd = cmd % 'docker exec -it %s kubectl set image -n %s deployment/%s %s=%s'
-        cmd = cmd % (selected_env.container_cloud_sdk, cfg.k8s_namespace, config.k8s_deployment_name, config.k8s_deployment_name, artifact_image)
+        cmd = cmd % 'docker exec -it %s %s'
+        cmd = cmd % (selected_env.container_cloud_sdk, 'kubectl set image -n %s deployment/%s %s=%s')
+        cmd = cmd % (selected_env.image_namespace, selected_env.k8s_deployment_name, selected_env.k8s_deployment_name, image)
+        err_code = os.system(cmd)
+        if err_code != 0:
+            return f'os error code {err_code}'
+        return None
 
 
 

@@ -62,6 +62,7 @@ class ScripServer:
         self.__delete_existing_image()
         self.__perform_docker_prune()
         self.__perform_deployment()
+        self.__success_message()
 
 
     def __validate(self):
@@ -144,6 +145,35 @@ class ScripServer:
         if self.__prod_env is not None and self.__prod_env.image_name is None:
             print(f'\n🔴 [prod-env] image name is required')
             exit()
+
+        
+        # VALIDATE IMAGE NAMESPACE, DEPLOYMENT NAME
+        if self.__stg_env is not None and self.__stg_env.deployment_type == 'k8s':
+            if self.__stg_env.image_namespace is None:
+                print(f'\n🔴 [stg-env] image namespace is required')
+                exit()
+
+            if self.__stg_env.k8s_deployment_name is None:
+                print(f'\n🔴 [stg-env] k8s deployment name is required')
+                exit()
+
+        if self.__rc_env is not None and self.__rc_env.deployment_type == 'k8s':
+            if self.__rc_env.image_namespace is None:
+                print(f'\n🔴 [rc-env] image namespace is required')
+                exit()
+
+            if self.__rc_env.k8s_deployment_name is None:
+                print(f'\n🔴 [rc-env] k8s deployment name is required')
+                exit()
+
+        if self.__prod_env is not None and self.__prod_env.deployment_type == 'k8s':
+            if self.__prod_env.image_namespace is None:
+                print(f'\n🔴 [prod-env] image namespace is required')
+                exit()
+
+            if self.__prod_env.k8s_deployment_name is None:
+                print(f'\n🔴 [prod-env] k8s deployment name is required')
+                exit()
 
 
     def __select_env(self):
@@ -618,3 +648,9 @@ class ScripServer:
         print(f'\n🔴 cannot find deployment logic for your case')
         exit()
 
+
+    def __success_message(self):
+        time.sleep(2)
+        print(f'\n\n')
+        print('🟢 success')
+        exit()
