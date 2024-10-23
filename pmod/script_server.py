@@ -523,3 +523,7 @@ class ScripServer:
         print('\n→ perform after clone func')
         user_func = ScriptServerUserFunc(self.__conf, self.__selected_env_code)
         self.__after_clone_func(user_func)
+
+
+    def __perform_build_image(self):
+        print('\n❖ perform build image')

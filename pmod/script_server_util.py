@@ -11,6 +11,7 @@ import os
 import time
 import requests
 import subprocess
+import re
 from typing import Any, Optional
 from packaging.version import Version
 from pmod.script_server_model import *
@@ -249,3 +250,53 @@ class ScriptServerUtil:
                 return f'os error code {err_code} from command "{conf.cmds_before_build[i]}"'
 
         return None
+
+
+    def build_image(self, ver: Version):
+        self.resolve_nameserver()
+        version: str = self.get_version_text(ver)
+
+        cmd = "docker images python:%s | awk 'NR>1'"
+        cmd = cmd % (conf.host_build_path, version)
+    
+    def resolve_nameserver(self) -> Optional[str]:
+        '''
+        IF HAVE ERROR LIKE 
+            ERROR: failed to solve: composer:2.3: failed to authorize: failed to fetch anonymous token
+            dial tcp: lookup auth.docker.io on 127.0.0.53:53: read udp 127.0.0.1:57682->127.0.0.53:53: read: connection refused
+        THEN EDIT THE /etc/resolv.conf
+        ADD/UPDATE THIS LINE:
+        nameserver 1.1.1.1
+        '''
+        file_path = '/hostfs/etc/resolv.conf'
+        lines : list[str] = []
+
+        try:
+            with open(file_path, 'r') as file:
+                lines = file.readlines()
+        except Exception:
+            return f'something went wrong when read the file {file_path}'
+
+        ns = 'nameserver 1.1.1.1'
+        rewrite: bool = True
+
+        for line in lines:
+            line = re.sub(' +', ' ', line)
+            if line == ns or line == f'{ns}\n':
+                rewrite = False
+                break
+
+        if rewrite:
+            lines.append(f'\n{ns}\n')
+            try:
+                with open(file_path, 'w') as file:
+                    try:
+                        file.writelines(lines)
+                    except Exception:
+                        return f'failed when write the file\nfile: {file_path}\ncontent:\n{"".join(line)}'
+            except Exception:
+                return f'failed when open to write the file\nfile: {file_path}'
+
+        return None
+
+

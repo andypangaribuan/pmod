@@ -40,7 +40,7 @@ class ScriptServerUserFunc:
                 try:
                     file.write(content)
                 except Exception:
-                    return f'failed when writing to the file\nfile: {file_path}\ncontent: {content}'
+                    return f'failed when writing to the file\nfile: {file_path}\ncontent:\n{content}'
         except Exception:
             return f'failed when open the file {file_path}'
 
