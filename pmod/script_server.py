@@ -558,7 +558,7 @@ class ScripServer:
         if len(self.__conf.cmds_before_build) == 0:
             return
 
-        print(f'\n❖ perform commands before image build')
+        print(f'\n→ perform commands before image build')
         err_message = self.__util.execute_command_before_image_build(self.__conf)
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
