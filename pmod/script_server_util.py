@@ -252,11 +252,11 @@ class ScriptServerUtil:
         return None
 
 
-    def build_image(self, conf: ScriptServerConf, selected_env: ScriptServerEnv, ver: Version) -> Optional[str]:
+    def build_image(self, conf: ScriptServerConf, selected_env: ScriptServerEnv, ver: Version, add_build_arg: str) -> Optional[str]:
         self.resolve_nameserver()
         version: str = self.get_version_text(ver)
 
-        print(f'\n→ checking image on local engine')
+        print(f'\n→ checking image on local device')
         cmd = 'chroot /hostfs /bin/bash -c "%s"'
         cmd = cmd % "docker images %s:%s | awk 'NR>1'"
         cmd = cmd % (selected_env.image_name, version)
@@ -264,13 +264,38 @@ class ScriptServerUtil:
         if err_message != "":
             return err_message
 
+        if selected_env.image_name not in out:
+            print('have no image')
+        else:
+            print('found existing image')
+
         if selected_env.image_name in out:
+            print(f'\n→ delete existing image on local device')
             cmd = 'chroot /hostfs /bin/bash -c "%s"'
             cmd = cmd % 'docker rmi %s:%s'
             cmd = cmd % (selected_env.image_name, version)
             err_code = os.system(cmd)
             if err_code != 0:
-                return f'os error code {err_code} when'
+                return f'os error code {err_code}'
+
+        print(f'\n→ build image on local device')
+        cmd_build_1 = 'docker build --no-cache -f %s --build-arg APP_VERSION=%s --build-arg TZ=%s -t %s .'
+        cmd_build_2 = 'docker build --no-cache -f %s --build-arg APP_VERSION=%s --build-arg TZ=%s %s -t %s .'
+        cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        cmd = cmd % 'cd %s; %s'
+
+        if add_build_arg is None:
+            cmd = cmd % (conf.host_build_path, cmd_build_1)
+            cmd = cmd % (conf.dockerfile_path, version, conf.timezone, f'{selected_env.image_name}:{version}')
+        else:
+            cmd = cmd % (conf.host_build_path, cmd_build_2)
+            cmd = cmd % (conf.dockerfile_path, version, conf.timezone, add_build_arg, f'{selected_env.image_name}:{version}')
+
+        print(f'cmd: {cmd}')
+        err_code = os.system(cmd)
+        if err_code != 0:
+            return f'os error code {err_code}'
+
 
 
     def resolve_nameserver(self) -> Optional[str]:

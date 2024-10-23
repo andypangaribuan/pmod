@@ -21,6 +21,7 @@ class ScripServer:
     __rc_env                  : ScriptServerEnv  = None
     __prod_env                : ScriptServerEnv  = None
     __after_clone_func        : callable         = None
+    __add_build_arg_func      : callable         = None
     __repository_type         : str              = None
     __selected_env            : ScriptServerEnv  = None
     __selected_env_code       : str              = None
@@ -32,12 +33,13 @@ class ScripServer:
     __user_next_version       : Version          = None
 
 
-    def __init__(self, conf: ScriptServerConf, stg_env: ScriptServerEnv = None, rc_env: ScriptServerEnv = None, prod_env: ScriptServerEnv = None, after_clone_func: callable = None):
+    def __init__(self, conf: ScriptServerConf, stg_env: ScriptServerEnv = None, rc_env: ScriptServerEnv = None, prod_env: ScriptServerEnv = None, after_clone_func: callable = None, add_build_arg_func: callable = None):
         self.__conf     = conf
         self.__stg_env  = stg_env
         self.__rc_env   = rc_env
         self.__prod_env = prod_env
         self.__after_clone_func = after_clone_func
+        self.__add_build_arg_func = add_build_arg_func
 
 
     def run(self):
@@ -543,7 +545,11 @@ class ScripServer:
     def __perform_build_image(self):
         print('\n❖ perform build image')
 
-        err_message = self.__util.build_image(self.__conf, self.__select_env, self.__user_next_version)
+        add_build_arg: str = None
+        if self.__add_build_arg_func is not None:
+            add_build_arg = self.__add_build_arg_func(self.__selected_env_code, self.__util.get_version_text(self.__user_next_version))
+
+        err_message = self.__util.build_image(self.__conf, self.__select_env, self.__user_next_version, add_build_arg)
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
             exit()
