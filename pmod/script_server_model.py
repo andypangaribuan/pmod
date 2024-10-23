@@ -16,6 +16,7 @@ class ScriptServerConf:
     git_user          : str       = None
     git_pass          : str       = None
     dockerfile_path   : str       = None
+    do_docker_prune   : bool      = False
     host_build_path   : str       = None
     cmds_before_build : list[str] = []
     terminate_when    : str       = None

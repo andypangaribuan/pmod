@@ -57,6 +57,8 @@ class ScripServer:
         self.__execute_commands_before_image_build()
         self.__perform_after_clone_func()
         self.__perform_build_image()
+        self.__perform_image_push()
+        self.__perform_docker_prune()
 
 
     def __validate(self):
@@ -543,8 +545,10 @@ class ScripServer:
 
 
     def __perform_build_image(self):
-        print('\n❖ perform build image')
+        if self.__conf.terminate_when == 'perform-build-image':
+            exit()
 
+        print('\n❖ perform build image')
         add_build_arg: str = None
         if self.__add_build_arg_func is not None:
             add_build_arg = self.__add_build_arg_func(self.__selected_env_code, self.__util.get_version_text(self.__user_next_version))
@@ -553,3 +557,23 @@ class ScripServer:
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
             exit()
+
+
+    def __perform_image_push(self):
+        if self.__conf.terminate_when == 'perform-image-push':
+            exit()
+
+        print('\n→ perform image push')
+        err_message = self.__util.push_image(self.__selected_env, self.__user_next_version)
+        if err_message is not None:
+            print(f'\n🔴 error: {err_message}')
+            exit()
+
+
+    def __perform_docker_prune(self):
+        if self.__conf.terminate_when == 'perform-docker-prune':
+            exit()
+
+        if self.__conf.do_docker_prune:
+            print('\n→ perform docker prune')
+

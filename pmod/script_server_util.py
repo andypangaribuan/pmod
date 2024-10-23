@@ -253,7 +253,10 @@ class ScriptServerUtil:
 
 
     def build_image(self, conf: ScriptServerConf, selected_env: ScriptServerEnv, ver: Version, add_build_arg: str) -> Optional[str]:
-        self.resolve_nameserver()
+        err_message = self.resolve_nameserver()
+        if err_message is not None:
+            return err_message
+        
         version: str = self.get_version_text(ver)
 
         print(f'\n→ checking image on local device')
@@ -296,6 +299,17 @@ class ScriptServerUtil:
             return f'os error code {err_code}'
 
 
+    def push_image(self, selected_env: ScriptServerEnv, ver: Version) -> Optional[str]:
+        version: str = self.get_version_text(ver)
+        cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        cmd = cmd % 'docker exec -it %s docker push %s:%s'
+        cmd = cmd % (selected_env.container_cloud_sdk, selected_env.image_name, version)
+        err_code = os.system(cmd)
+        if err_code != 0:
+            return f'os error code {err_code}'
+        return None
+
+
 
     def resolve_nameserver(self) -> Optional[str]:
         '''
@@ -325,6 +339,7 @@ class ScriptServerUtil:
                 break
 
         if rewrite:
+            print(f'\n→ perform resolve nameserver')
             lines.append(f'\n{ns}\n')
             try:
                 with open(file_path, 'w') as file:
