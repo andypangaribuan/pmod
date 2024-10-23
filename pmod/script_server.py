@@ -60,6 +60,7 @@ class ScripServer:
         self.__perform_build_image()
         self.__perform_image_push()
         self.__delete_existing_image()
+        self.__delete_build_directory()
         self.__perform_docker_prune()
         self.__perform_deployment()
         self.__wait_rolling_update()
@@ -614,6 +615,17 @@ class ScripServer:
             exit()
 
 
+    def __delete_build_directory(self):
+        if self.__conf.terminate_when == 'delete build directory':
+            exit()
+
+        print('\n→ delete build directory')
+        err_message = self.__util.delete_build_directory(self.__conf)
+        if err_message is not None:
+            print(f'\n🔴 error: {err_message}')
+            exit()
+
+
     def __perform_docker_prune(self):
         if self.__conf.terminate_when == 'perform-docker-prune':
             exit()
@@ -656,6 +668,7 @@ class ScripServer:
         if self.__selected_env.hosting_type == 'gcp' and self.__selected_env.deployment_type == 'k8s':
             print('\n→ wait for rolling update')
             self.__util.wait_rolling_update_on_gcp_k8s(self.__selected_env, self.__user_next_version)
+            return
 
         print(f'\n🔴 cannot find wait rolling update logic for your case')
         exit()

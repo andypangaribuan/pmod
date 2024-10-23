@@ -300,6 +300,8 @@ class ScriptServerUtil:
             return f'os error code {err_code}'
         print(f'\n')
 
+        return None
+
 
     def push_image(self, selected_env: ScriptServerEnv, ver: Version) -> Optional[str]:
         version: str = self.get_version_text(ver)
@@ -359,6 +361,16 @@ class ScriptServerUtil:
         cmd = 'chroot /hostfs /bin/bash -c "%s"'
         cmd = cmd % 'docker rmi %s:%s'
         cmd = cmd % (selected_env.image_name, version)
+        err_code = os.system(cmd)
+        if err_code != 0:
+            return f'os error code {err_code}'
+        return None
+
+
+    def delete_build_directory(self, conf: ScriptServerConf) -> Optional[str]:
+        cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        cmd = cmd % 'rm -rf %s'
+        cmd = cmd % (conf.host_build_path)
         err_code = os.system(cmd)
         if err_code != 0:
             return f'os error code {err_code}'
