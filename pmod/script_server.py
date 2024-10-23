@@ -47,22 +47,25 @@ class ScripServer:
         self.__validate()
         self.__select_env()
         self.__validate_selected()
-        self.__git_diff_branch()
-        self.__get_current_image_version()
-        self.__diff_branch_with_tag_version()
-        self.__get_below_or_above_image_version()
-        self.__get_user_next_version()
-        self.__ask_user_next_version()
-        self.__create_git_tag()
-        self.__perform_git_clone()
-        self.__execute_commands_before_image_build()
-        self.__perform_after_clone_func()
-        self.__perform_build_image()
-        self.__perform_image_push()
-        self.__delete_existing_image()
-        self.__perform_docker_prune()
-        self.__perform_deployment()
-        self.__success_message()
+        # self.__git_diff_branch()
+        # self.__get_current_image_version()
+        # self.__diff_branch_with_tag_version()
+        # self.__get_below_or_above_image_version()
+        # self.__get_user_next_version()
+        # self.__ask_user_next_version()
+        # self.__create_git_tag()
+        # self.__perform_git_clone()
+        # self.__execute_commands_before_image_build()
+        # self.__perform_after_clone_func()
+        # self.__perform_build_image()
+        # self.__perform_image_push()
+        # self.__delete_existing_image()
+        # self.__perform_docker_prune()
+        # self.__perform_deployment()
+        # self.__wait_rolling_update()
+        # self.__success_message()
+
+        self.__wait_rolling_update_x()
 
 
     def __validate(self):
@@ -646,6 +649,21 @@ class ScripServer:
 
         print(f'\n🔴 cannot find deployment logic for your case')
         exit()
+
+
+    def __wait_rolling_update(self):
+        if self.__conf.terminate_when == 'wait-rolling-update':
+            exit()
+
+        if self.__selected_env.hosting_type == 'gcp' and self.__selected_env.deployment_type == 'k8s':
+            print('\n→ wait for rolling update')
+
+        print(f'\n🔴 cannot find wait rolling update logic for your case')
+        exit()
+
+
+    def __wait_rolling_update_x(self):
+        self.__util.wait_rolling_update_on_gcp_k8s(self.__selected_env, self.__user_next_version)
 
 
     def __success_message(self):

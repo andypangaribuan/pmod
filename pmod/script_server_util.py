@@ -13,6 +13,7 @@ import requests
 import subprocess
 import re
 from typing import Any, Optional
+from tabulate import tabulate
 from packaging.version import Version
 from pmod.script_server_model import *
 
@@ -375,12 +376,128 @@ class ScriptServerUtil:
 
     def deploy_on_gcp_k8s(self, selected_env: ScriptServerEnv, ver: Version) -> Optional[str]:
         image: str = f'{selected_env.image_name}:{self.get_version_text(ver)}'
-        cmd = 'chroot /hostfs /bin/bash -c "%s"'
-        cmd = cmd % 'docker exec -it %s %s'
-        cmd = cmd % (selected_env.container_cloud_sdk, 'kubectl set image -n %s deployment/%s %s=%s')
-        cmd = cmd % (selected_env.image_namespace, selected_env.k8s_deployment_name, selected_env.k8s_deployment_name, image)
+        cmd_base = 'chroot /hostfs /bin/bash -c "docker exec -it %s"'
+        cmd_base = cmd_base % (selected_env.container_cloud_sdk + ' %s')
+
+        # cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        # cmd = cmd % 'docker exec -it %s'
+        # cmd = cmd % (selected_env.container_cloud_sdk + ' %s')
+        cmd = cmd_base % ('kubectl set image -n {ns} deployment/{dep} {dep}={img}')
+        cmd = cmd.format(ns=selected_env.image_namespace, dep=selected_env.k8s_deployment_name, img=image)
+
+        # cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        # cmd = cmd % 'docker exec -it %s %s'
+        # cmd = cmd % (selected_env.container_cloud_sdk, 'kubectl set image -n %s deployment/%s %s=%s')
+        # cmd = cmd % (selected_env.image_namespace, selected_env.k8s_deployment_name, selected_env.k8s_deployment_name, image)
         err_code = os.system(cmd)
         if err_code != 0:
             return f'os error code {err_code}'
         return None
+
+
+    def wait_rolling_update_on_gcp_k8s(self, selected_env: ScriptServerEnv, ver: Version):
+        image_version       : str       = self.get_version_text(ver)
+        delete_lines        : int       = 0
+        do_loop             : bool      = True
+        headers             : list[str] = ['POD', 'VERSION', 'PHASE']
+        last_printed_output : str       = ''
+
+        cmd_base = 'chroot /hostfs /bin/bash -c "docker exec -it %s"'
+        cmd_base = cmd_base % (selected_env.container_cloud_sdk + ' %s')
+
+        while do_loop:
+            cmd = cmd_base % 'kubectl get pods -n %s -l app=%s -o jsonpath=\'{range .items[*]}{.metadata.name} {..containers..image} {@.status.phase}|{end}\''
+            cmd = cmd % (selected_env.image_namespace, selected_env.k8s_deployment_name)
+            out, err = self.sh_get(cmd)
+            if err != '':
+                if delete_lines > 0:
+                    self.remove_current_line(delete_lines)
+                    delete_lines = 0
+
+                msg = f'🔴 error when get pods: {err.strip()}'
+                delete_lines = len(msg.split('\n'))
+                print(msg)
+                last_printed_output = ''
+                time.sleep(3)
+                continue
+
+            rows      : list[list] = []
+            vers      : list[str]  = []
+            lines     : list[str]  = out.split('\n')
+            had_error : bool       = False
+
+            for line in lines:
+                line = line.strip()
+                ls: list[str] = line.split('|')
+                if line == '':
+                    continue
+
+                for line in ls:
+                    line = line.strip()
+                    if line == '':
+                        continue
+
+                    items = line.split(' ')
+                    if len(items) < 3:
+                        had_error = True
+                        break
+
+                    name: str = ''
+                    ver: str = ''
+                    phase: str = ''
+
+                    for i in range(len(items)):
+                        if i == 0:
+                            name = items[i]
+                            continue
+
+                        if i+1 == len(items):
+                            phase = items[i]
+                            continue
+
+                        if selected_env.image_name in items[i]:
+                            ver = items[i].split(':')[1]
+                    
+                    if name != '' and ver != '' and phase != '':
+                        row = [name, ver, phase]
+                        rows.append(row)
+                        vers.append(ver)
+
+                if had_error:
+                    break
+
+            if had_error:
+                msg = f'🔴 error when parsing the output command\n{out}'
+                msg = msg.strip()
+                delete_lines = msg.split('\n')
+                print(msg)
+                last_printed_output = ''
+                continue
+
+            if len(rows) == 0:
+                msg = f'🔴 doesn\'t have any pod, ouput: "{out}"'
+                msg = msg.strip()
+                delete_lines = msg.split('\n')
+                print(msg)
+                last_printed_output = ''
+                continue
+
+            if len(rows) > 0:
+                if last_printed_output != out:
+                    last_printed_output = out
+                    if delete_lines > 0:
+                        self.remove_current_line(delete_lines)
+                        delete_lines = 0
+
+                    delete_lines = 2 + len(rows)
+                    print(tabulate(rows, headers=headers))
+
+            if len(vers) > 0:
+                ls_ver = list(set(vers))
+                if len(ls_ver) == 1:
+                    if ls_ver[0] == image_version:
+                        do_loop = False
+
+
+
 
