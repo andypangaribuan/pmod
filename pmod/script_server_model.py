@@ -32,3 +32,4 @@ class ScriptServerEnv:
     container_cloud_sdk               : str = None  # only for hosting_type = gcp
     git_prev_branch                   : str = None
     git_branch                        : str = None
+    image_name                        : str = None

@@ -54,6 +54,7 @@ class ScripServer:
         self.__perform_git_clone()
         self.__execute_commands_before_image_build()
         self.__perform_after_clone_func()
+        self.__perform_build_image()
 
 
     def __validate(self):
@@ -121,6 +122,20 @@ class ScripServer:
 
         if self.__prod_env is not None and self.__prod_env.image_registry not in ['gcp-artifact-registry']:
             print(f'\n🔴 [prod-env] supported image registry: gcp-artifact-registry')
+            exit()
+
+
+        # VALIDATE IMAGE NAME
+        if self.__stg_env is not None and self.__stg_env.image_name is None:
+            print(f'\n🔴 [stg-env] image name is required')
+            exit()
+
+        if self.__rc_env is not None and self.__rc_env.image_name is None:
+            print(f'\n🔴 [rc-env] image name is required')
+            exit()
+
+        if self.__prod_env is not None and self.__prod_env.image_name is None:
+            print(f'\n🔴 [prod-env] image name is required')
             exit()
 
 
@@ -527,3 +542,8 @@ class ScripServer:
 
     def __perform_build_image(self):
         print('\n❖ perform build image')
+
+        err_message = self.__util.build_image(self.__conf, self.__select_env, self.__user_next_version)
+        if err_message is not None:
+            print(f'\n🔴 error: {err_message}')
+            exit()

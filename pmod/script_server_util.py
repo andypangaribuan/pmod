@@ -252,13 +252,27 @@ class ScriptServerUtil:
         return None
 
 
-    def build_image(self, ver: Version):
+    def build_image(self, conf: ScriptServerConf, selected_env: ScriptServerEnv, ver: Version) -> Optional[str]:
         self.resolve_nameserver()
         version: str = self.get_version_text(ver)
 
-        cmd = "docker images python:%s | awk 'NR>1'"
-        cmd = cmd % (conf.host_build_path, version)
-    
+        print(f'\n→ checking image on local engine')
+        cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        cmd = cmd % "docker images %s:%s | awk 'NR>1'"
+        cmd = cmd % (selected_env.image_name, version)
+        out, err_message = self.sh_get(cmd)
+        if err_message != "":
+            return err_message
+
+        if selected_env.image_name in out:
+            cmd = 'chroot /hostfs /bin/bash -c "%s"'
+            cmd = cmd % 'docker rmi %s:%s'
+            cmd = cmd % (selected_env.image_name, version)
+            err_code = os.system(cmd)
+            if err_code != 0:
+                return f'os error code {err_code} when'
+
+
     def resolve_nameserver(self) -> Optional[str]:
         '''
         IF HAVE ERROR LIKE 
