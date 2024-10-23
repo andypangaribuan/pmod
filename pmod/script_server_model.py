@@ -34,3 +34,4 @@ class ScriptServerEnv:
     git_prev_branch                   : str = None
     git_branch                        : str = None
     image_name                        : str = None
+    image_namespace                   : str = None  # required if deployment_type=k8s

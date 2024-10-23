@@ -310,13 +310,12 @@ class ScriptServerUtil:
         return None
 
 
-
     def resolve_nameserver(self) -> Optional[str]:
         '''
         IF HAVE ERROR LIKE 
             ERROR: failed to solve: composer:2.3: failed to authorize: failed to fetch anonymous token
             dial tcp: lookup auth.docker.io on 127.0.0.53:53: read udp 127.0.0.1:57682->127.0.0.53:53: read: connection refused
-        THEN EDIT THE /etc/resolv.conf
+        THEN EDIT THE /etc/resolv.conf or /run/systemd/resolve/stub-resolv.conf
         ADD/UPDATE THIS LINE:
         nameserver 1.1.1.1
         '''
@@ -351,5 +350,33 @@ class ScriptServerUtil:
                 return f'failed when open to write the file\nfile: {file_path}'
 
         return None
+
+
+    def delete_image(self, selected_env: ScriptServerEnv, ver: Version) -> Optional[str]:
+        version: str = self.get_version_text(ver)
+        cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        cmd = cmd % 'docker rmi %s:%s'
+        cmd = cmd % (selected_env.image_name, version)
+        err_code = os.system(cmd)
+        if err_code != 0:
+            return f'os error code {err_code}'
+        return None
+
+
+    def docker_prune(self) -> Optional[str]:
+        cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        cmd = cmd % 'docker container prune -f; docker image prune -f; docker builder prune -f'
+        err_code = os.system(cmd)
+        if err_code != 0:
+            return f'os error code {err_code}'
+        return None
+
+
+    def deploy_on_gcp_k8s(self, selected_env: ScriptServerEnv, ver: Version) -> Optional[str]:
+        version: str = self.get_version_text(ver)
+        cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        cmd = cmd % 'docker exec -it %s kubectl set image -n %s deployment/%s %s=%s'
+        cmd = cmd % (selected_env.container_cloud_sdk, cfg.k8s_namespace, config.k8s_deployment_name, config.k8s_deployment_name, artifact_image)
+
 
 

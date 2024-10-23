@@ -7,6 +7,7 @@
 # All Rights Reserved.
 #
 
+import time
 from typing import Optional
 from packaging.version import Version
 from pmod.script_server_model import *
@@ -58,7 +59,9 @@ class ScripServer:
         self.__perform_after_clone_func()
         self.__perform_build_image()
         self.__perform_image_push()
+        self.__delete_existing_image()
         self.__perform_docker_prune()
+        self.__perform_deployment()
 
 
     def __validate(self):
@@ -570,10 +573,48 @@ class ScripServer:
             exit()
 
 
+    def __delete_existing_image(self):
+        if self.__conf.terminate_when == 'delete existing image':
+            exit()
+
+        print('\n→ delete existing image')
+        err_message = self.__util.delete_image(self.__selected_env, self.__user_next_version)
+        if err_message is not None:
+            print(f'\n🔴 error: {err_message}')
+            exit()
+
+
     def __perform_docker_prune(self):
         if self.__conf.terminate_when == 'perform-docker-prune':
             exit()
 
         if self.__conf.do_docker_prune:
             print('\n→ perform docker prune')
+            err_message = self.__util.docker_prune()
+            if err_message is not None:
+                print(f'\n🔴 error: {err_message}')
+                exit()
+
+
+    def __perform_deployment(self):
+        if self.__conf.terminate_when == 'perform-deployment':
+            exit()
+
+        if self.__current_image_version is None:
+            print('\n→ perform deployment')
+            time.sleep(3)
+            print('because this is your first image, you need to make manual deployment')
+            print('🟢 finish')
+            exit()
+
+        if self.__selected_env.hosting_type == 'gcp' and self.__selected_env.deployment_type == 'k8s':
+            print('\n→ perform deployment on gcp kubernetes')
+            err_message = self.__util.deploy_on_gcp_k8s(self.__selected_env, self.__user_next_version)
+            if err_message is not None:
+                print(f'\n🔴 error: {err_message}')
+                exit()
+            return
+
+        print(f'\n🔴 cannot find deployment logic for your case')
+        exit()
 
