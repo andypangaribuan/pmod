@@ -499,6 +499,7 @@ class ScriptServerUtil:
 
                     delete_lines = 2 + len(rows)
                     print(tabulate(rows, headers=headers))
+                    time.sleep(1)
 
             if len(vers) > 0:
                 ls_ver = list(set(vers))
