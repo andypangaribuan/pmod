@@ -14,8 +14,8 @@ Focus on simplicity, speed and safety.
 ## Use
 
 ```sh
-pip install dist/pmod-0.0.2.tar
-pip install https://github.com/andypangaribuan/pmod/releases/download/v0.0.2/pmod-v0.0.2.tar.gz
+pip install dist/pmod-0.0.3.tar
+pip install https://github.com/andypangaribuan/pmod/releases/download/v0.0.3/pmod-v0.0.3.tar.gz
 pip install https://github.com/andypangaribuan/pmod/releases/latest/download/pmod.tar.gz
 ```
 
