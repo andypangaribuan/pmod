@@ -165,17 +165,17 @@ class ScriptServerUtil:
         return last_index, ver.release[last_index]
 
 
-    def increase_version(self, ver: Version) -> str:
+    def increase_version(self, ver: Version) -> Version:
         if ver.pre is None:
             last_index, value = self.get_last_index_version(ver)
             ls = [str(v) for v in ver.release]
             ls[last_index] = str(value + 1)
-            return '.'.join(ls)
+            return Version('.'.join(ls))
 
         pre_name, pre_ver = ver.pre
         ls = [str(v) for v in ver.release]
         new_version = '.'.join(ls)
-        return f'{new_version}.{pre_name}{pre_ver+1}'
+        return Version(f'{new_version}.{pre_name}{pre_ver+1}')
 
 
     def fetch_latest_image_version(self, env: ScriptServerEnv, env_name: str) -> tuple[Version, str]:
