@@ -220,9 +220,8 @@ class ScriptServerUtil:
         if repository_type not in ['gitlab.com']:
             return 'unhandled logic'
 
-        print(f'\n→ clean the build path directory')
         version: str = f'v{self.get_version_text(ver)}'
-        print(f'\n→ clone the git project, tag: {version}')
+        print(f'\n→ clean the build directory')
         cmd = 'chroot /hostfs /bin/bash -c "%s"'
         cmd = cmd % 'rm -rf %s; mkdir -p %s'
         cmd = cmd % (conf.host_build_path, conf.host_build_path)
@@ -230,7 +229,7 @@ class ScriptServerUtil:
         if err_code != 0:
             return f'os error code {err_code}'
 
-        print(f'\n→ perform git clone')
+        print(f'\n→ clone the git project, tag: {version}')
         cmd = 'chroot /hostfs /bin/bash -c "%s"'
         cmd = cmd % 'cd %s; git clone --quiet -c advice.detachedHead=false --depth 1 --branch %s https://%s:%s@%s.git .'
         cmd = cmd % (conf.host_build_path, version, conf.git_user, conf.git_pass, conf.git_repo)
@@ -241,7 +240,7 @@ class ScriptServerUtil:
 
     def execute_command_before_image_build(self, conf: ScriptServerConf) -> Optional[str]:
         for i in range(len(conf.cmds_before_build)):
-            print(f'- perform command {i+1}/{len(conf.cmds_before_build)}')
+            print(f'- execute command {i+1}/{len(conf.cmds_before_build)}')
 
             cmd = 'chroot /hostfs /bin/bash -c "%s"'
             cmd = cmd % 'cd %s; %s'

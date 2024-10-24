@@ -56,7 +56,7 @@ class ScripServer:
         self.__create_git_tag()
         self.__perform_git_clone()
         self.__execute_commands_before_image_build()
-        self.__perform_after_clone_func()
+        self.__execute_after_clone_func()
         self.__perform_build_image()
         self.__perform_image_push()
         self.__delete_existing_image()
@@ -560,21 +560,21 @@ class ScripServer:
         if len(self.__conf.cmds_before_build) == 0:
             return
 
-        print(f'\n→ perform commands before image build')
+        print(f'\n→ execute commands before image build')
         err_message = self.__util.execute_command_before_image_build(self.__conf)
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
             exit()
 
 
-    def __perform_after_clone_func(self):
-        if self.__conf.terminate_when == 'perform-after-clone-func':
+    def __execute_after_clone_func(self):
+        if self.__conf.terminate_when == 'execute-after-clone-func':
             exit()
 
         if self.__after_clone_func is None:
             return
 
-        print('\n→ perform after clone func')
+        print('\n→ execute after clone func')
         user_func = ScriptServerUserFunc(self.__conf, self.__selected_env_code)
         self.__after_clone_func(user_func)
 
