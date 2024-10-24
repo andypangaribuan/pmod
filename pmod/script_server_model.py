@@ -8,8 +8,6 @@
 #
 
 class ScriptServerConf:
-    image_name        : str       = None
-    project_name      : str       = None
     timezone          : str       = None
     git_repo          : str       = None
     git_id            : str       = None
@@ -23,7 +21,6 @@ class ScriptServerConf:
 
 
 class ScriptServerEnv:
-    timezone                          : str = None
     hosting_type                      : str = None  # types: gcp
     deployment_type                   : str = None  # types: k8s
     image_registry                    : str = None  # types: gcp-artifact-registry
