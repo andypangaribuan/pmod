@@ -676,6 +676,6 @@ class ScripServer:
 
     def __success_message(self):
         time.sleep(3)
-        print(f'\n\n')
+        print(f'\n\n⠀')
         print('🟢 success')
         exit()
