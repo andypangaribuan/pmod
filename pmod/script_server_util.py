@@ -297,7 +297,7 @@ class ScriptServerUtil:
         err_code = os.system(cmd)
         if err_code != 0:
             return f'os error code {err_code}'
-        print(f'\n')
+        print(f'\n⠀')
 
         return None
 
@@ -342,7 +342,7 @@ class ScriptServerUtil:
 
         if rewrite:
             print(f'\n→ perform resolve nameserver')
-            lines.append(f'\n{ns}\n')
+            lines.append(f'\n{ns}\n⠀')
             try:
                 with open(file_path, 'w') as file:
                     try:
