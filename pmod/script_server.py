@@ -520,27 +520,29 @@ class ScripServer:
             print(f'\n🔴 error: unhandled logic')
             exit()
 
-        version: str = f'v{self.__util.get_version_text(self.__user_next_version)}'
+        git_tag_name: str = f'v{self.__util.get_version_text(self.__user_next_version)}'
+        if self.__conf.git_tag_prefix is not None:
+            git_tag_name = f'{git_tag_name}{self.__conf.git_tag_prefix}'
 
         if self.__repository_type == 'gitlab.com':
             print('\n→ find tag on gitlab')
-            tag_exists, err_message = self.__util.gitlab_find_tag(self.__conf, self.__user_next_version)
+            tag_exists, err_message = self.__util.gitlab_find_tag(self.__conf, git_tag_name)
             if err_message is not None:
                 print(f'\n🔴 error: {err_message}')
                 exit()
 
             if tag_exists:
-                print(f'tag {version} already exists')
+                print(f'tag {git_tag_name} already exists')
                 print('\n→ delete the existing tag')
-                err_message = self.__util.gitlab_delete_tag(self.__conf, self.__user_next_version)
+                err_message = self.__util.gitlab_delete_tag(self.__conf, git_tag_name)
                 if err_message is not None:
                     print(f'\n🔴 error: {err_message}')
                     exit()
             else:
-                print(f'tag {version} not exists')
+                print(f'tag {git_tag_name} not exists')
 
-            print(f'\n→ create git tag {version} from branch {self.__selected_env.git_branch}')
-            err_message = self.__util.gitlab_create_tag(self.__conf, self.__user_next_version, self.__selected_env.git_branch)
+            print(f'\n→ create git tag {git_tag_name} from branch {self.__selected_env.git_branch}')
+            err_message = self.__util.gitlab_create_tag(self.__conf, git_tag_name, self.__selected_env.git_branch)
             if err_message is not None:
                 print(f'\n🔴 error: {err_message}')
                 exit()
@@ -550,7 +552,11 @@ class ScripServer:
         if self.__conf.terminate_when == 'perform-git-clone':
             exit()
 
-        err_message = self.__util.git_clone(self.__conf, self.__user_next_version, self.__repository_type)
+        git_tag_name: str = f'v{self.__util.get_version_text(self.__user_next_version)}'
+        if self.__conf.git_tag_prefix is not None:
+            git_tag_name = f'{git_tag_name}{self.__conf.git_tag_prefix}'
+
+        err_message = self.__util.git_clone(self.__conf, git_tag_name, self.__repository_type)
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
             exit()

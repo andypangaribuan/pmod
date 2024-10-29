@@ -105,30 +105,28 @@ class ScriptServerUtil:
         exit()
 
 
-    def gitlab_find_tag(self, conf: ScriptServerConf, ver: Version) -> tuple[bool, str]:
-        version: str = f'v{self.get_version_text(ver)}'
-        url: str = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/tags/{version}'
+    def gitlab_find_tag(self, conf: ScriptServerConf, tag_name: str) -> tuple[bool, str]:
+        url: str = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/tags/{tag_name}'
         headers: dict[str, str] = {'PRIVATE-TOKEN': conf.git_pass}
         res = requests.get(url, headers=headers)
-        jres = res.json()
+        jons = res.json()
 
         match res.status_code:
             case 404:
-                message = self.dict_value(jres, ['message'])
+                message = self.dict_value(jons, ['message'])
                 if message == '404 Tag Not Found':
                     return False, None
                 
             case 200:
-                name = self.dict_value(jres, ['name'])
-                if name == version:
+                name = self.dict_value(jons, ['name'])
+                if name == tag_name:
                     return True, None
 
-        return False, f'http code: {res.status_code}\nresponse: {jres}'
+        return False, f'http code: {res.status_code}\nresponse: {jons}'
 
 
-    def gitlab_delete_tag(self, conf: ScriptServerConf, ver: Version) -> Optional[str]:
-        version: str = f'v{self.get_version_text(ver)}'
-        url = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/tags/{version}'
+    def gitlab_delete_tag(self, conf: ScriptServerConf, tag_name: str) -> Optional[str]:
+        url = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/tags/{tag_name}'
         headers: dict[str, str] = {'PRIVATE-TOKEN': conf.git_pass}
         res = requests.delete(url, headers=headers)
 
@@ -143,9 +141,8 @@ class ScriptServerUtil:
         return None
 
 
-    def gitlab_create_tag(self, conf: ScriptServerConf, ver: Version, branch: str) -> Optional[str]:
-        version: str = f'v{self.get_version_text(ver)}'
-        url = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/tags?tag_name={version}&ref={branch}'
+    def gitlab_create_tag(self, conf: ScriptServerConf, tag_name: str, branch: str) -> Optional[str]:
+        url = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/tags?tag_name={tag_name}&ref={branch}'
         headers: dict[str, str] = {'PRIVATE-TOKEN': conf.git_pass}
         res = requests.post(url, headers=headers)
         if res.status_code not in [200, 201]:
@@ -153,7 +150,7 @@ class ScriptServerUtil:
 
         try:
             version_name = self.dict_value(res.json(), ['name'])
-            if version_name == version:
+            if version_name == tag_name:
                 return None
             return f'http code: {res.status_code}, response: {res.json()}'
         except Exception:
@@ -216,11 +213,10 @@ class ScriptServerUtil:
             return image_version, None
 
 
-    def git_clone(self, conf: ScriptServerConf, ver: Version, repository_type: str) -> Optional[str]:
+    def git_clone(self, conf: ScriptServerConf, tag_name: str, repository_type: str) -> Optional[str]:
         if repository_type not in ['gitlab.com']:
             return 'unhandled logic'
 
-        version: str = f'v{self.get_version_text(ver)}'
         print(f'\n→ clean the build directory')
         cmd = 'chroot /hostfs /bin/bash -c "%s"'
         cmd = cmd % 'rm -rf %s; mkdir -p %s'
@@ -229,10 +225,10 @@ class ScriptServerUtil:
         if err_code != 0:
             return f'os error code {err_code}'
 
-        print(f'\n→ clone the git project, tag: {version}')
+        print(f'\n→ clone the git project, tag: {tag_name}')
         cmd = 'chroot /hostfs /bin/bash -c "%s"'
         cmd = cmd % 'cd %s; git clone --quiet -c advice.detachedHead=false --depth 1 --branch %s https://%s:%s@%s.git .'
-        cmd = cmd % (conf.host_build_path, version, conf.git_user, conf.git_pass, conf.git_repo)
+        cmd = cmd % (conf.host_build_path, tag_name, conf.git_user, conf.git_pass, conf.git_repo)
         err_code = os.system(cmd)
         if err_code != 0:
             return f'os error code {err_code}'
