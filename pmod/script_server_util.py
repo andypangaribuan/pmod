@@ -237,6 +237,15 @@ class ScriptServerUtil:
         if err_code != 0:
             return f'os error code {err_code}'
 
+        if conf.git_project_path is not None:
+            print(f'\n→ prepare project directory')
+            cmd = 'chroot /hostfs /bin/bash -c "%s"'
+            cmd = cmd % "cd %s; mv %s .___; find . -maxdepth 1 ! -name '.' ! -name '.___'  -exec rm -rf {} +; mv .___/{.,}* .; rm -rf .___"
+            cmd = cmd % (conf.host_build_path, conf.git_project_path)
+            err_code = os.system(cmd)
+            if err_code != 0:
+                return f'os error code {err_code}'
+
 
     def execute_command_before_image_build(self, conf: ScriptServerConf) -> Optional[str]:
         for i in range(len(conf.cmds_before_build)):

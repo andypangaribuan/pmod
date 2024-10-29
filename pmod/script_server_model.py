@@ -13,6 +13,8 @@ class ScriptServerConf:
     git_id            : str       = None
     git_user          : str       = None
     git_pass          : str       = None
+    git_project_path  : str       = None # optional, project path in sub directory
+    git_tag_prefix    : str       = None # optional, e.q. value: -middleware, result: v1.2.3-middleware
     dockerfile_path   : str       = None
     do_docker_prune   : bool      = False
     host_build_path   : str       = None

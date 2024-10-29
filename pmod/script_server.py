@@ -314,15 +314,18 @@ class ScripServer:
             exit()
 
         if self.__repository_type == 'gitlab.com':
-            current_image_version: str = self.__util.get_version_text(self.__current_image_version)
-            print(f'\n→ call gitlab api: diff (branch:{self.__selected_env.git_branch} → tag:v{current_image_version})')
-            diffs, err_message = self.__util.gitlab_diff_branch(self.__conf, self.__selected_env.git_branch, f'v{current_image_version}')
+            git_tag: str = f'v{self.__util.get_version_text(self.__current_image_version)}'
+            if self.__conf.git_tag_prefix is not None:
+                git_tag = f'{git_tag}{self.__conf.git_tag_prefix}'
+
+            print(f'\n→ call gitlab api: diff (branch:{self.__selected_env.git_branch} → tag:{git_tag})')
+            diffs, err_message = self.__util.gitlab_diff_branch(self.__conf, self.__selected_env.git_branch, git_tag)
             if err_message is not None:
                 print(f'🔴 error: {err_message}')
                 exit()
 
             if diffs == 0:
-                print(f"no changes from branch '{self.__selected_env.git_branch}' with tag 'v{current_image_version}'")
+                print(f"no changes from branch '{self.__selected_env.git_branch}' with tag '{git_tag}'")
                 exit()
 
             print(f'have {diffs} diff, good to go')
