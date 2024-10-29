@@ -37,6 +37,11 @@ function build {
   python -m build
 }
 
+#: lint check
+function check {
+  ruff check pmod
+}
+
 #: prereq
 function prereq {
   pip install virtualenv
