@@ -9,7 +9,7 @@
 
 import os
 from typing import Optional
-from pmod.script_server_model import *
+from pmod.script_server_model import ScriptServerConf
 
 
 class ScriptServerUserFunc:

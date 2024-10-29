@@ -10,9 +10,9 @@
 import time
 from typing import Optional
 from packaging.version import Version
-from pmod.script_server_model import *
-from pmod.script_server_util import *
-from pmod.script_server_user_func import *
+from pmod.script_server_model import ScriptServerConf, ScriptServerEnv
+from pmod.script_server_util import ScriptServerUtil
+from pmod.script_server_user_func import ScriptServerUserFunc
 
 
 class ScripServer:
@@ -71,15 +71,15 @@ class ScripServer:
         if len(self.__conf.git_repo) > 10 and self.__conf.git_repo[:10] == 'gitlab.com':
             self.__repository_type = 'gitlab.com'
         else:
-            print(f'\n🔴 only support gitlab.com repository')
+            print('\n🔴 only support gitlab.com repository')
             exit()
 
         if self.__conf.host_build_path is None:
-            print(f'\n🔴 have no host_build_path configured')
+            print('\n🔴 have no host_build_path configured')
             exit()
 
         if self.__stg_env is None and self.__rc_env is None and self.__prod_env is None:
-            print(f'\n🔴 have no env configured')
+            print('\n🔴 have no env configured')
             exit()
 
         if self.__stg_env is not None and self.__rc_env is not None and self.__prod_env is not None:
@@ -89,92 +89,92 @@ class ScripServer:
         elif self.__stg_env is not None:
             self.__workflow_env_code = 's'
         else:
-            print(f'\n🔴 no matching workflow env')
+            print('\n🔴 no matching workflow env')
             exit()
 
 
         # VALIDATE HOSTING TYPES
         if self.__stg_env is not None and self.__stg_env.hosting_type not in ['gcp']:
-            print(f'\n🔴 [stg-env] hosting type support: gcp')
+            print('\n🔴 [stg-env] hosting type support: gcp')
             exit()
 
         if self.__rc_env is not None and self.__rc_env.hosting_type not in ['gcp']:
-            print(f'\n🔴 [rc-env] hosting type support: gcp')
+            print('\n🔴 [rc-env] hosting type support: gcp')
             exit()
 
         if self.__prod_env is not None and self.__prod_env.hosting_type not in ['gcp']:
-            print(f'\n🔴 [prod-env] hosting type support: gcp')
+            print('\n🔴 [prod-env] hosting type support: gcp')
             exit()
 
 
         # VALIDATE DEPLOYMENT TYPES
         if self.__stg_env is not None and self.__stg_env.deployment_type not in ['k8s']:
-            print(f'\n🔴 [stg-env] deployment type support: k8s')
+            print('\n🔴 [stg-env] deployment type support: k8s')
             exit()
 
         if self.__rc_env is not None and self.__rc_env.deployment_type not in ['k8s']:
-            print(f'\n🔴 [rc-env] deployment type support: k8s')
+            print('\n🔴 [rc-env] deployment type support: k8s')
             exit()
 
         if self.__prod_env is not None and self.__prod_env.deployment_type not in ['k8s']:
-            print(f'\n🔴 [prod-env] deployment type support: k8s')
+            print('\n🔴 [prod-env] deployment type support: k8s')
             exit()
 
 
         # VALIDATE IMAGE REGISTRY TYPES
         if self.__stg_env is not None and self.__stg_env.image_registry not in ['gcp-artifact-registry']:
-            print(f'\n🔴 [stg-env] supported image registry: gcp-artifact-registry')
+            print('\n🔴 [stg-env] supported image registry: gcp-artifact-registry')
             exit()
 
         if self.__rc_env is not None and self.__rc_env.image_registry not in ['gcp-artifact-registry']:
-            print(f'\n🔴 [rc-env] supported image registry: gcp-artifact-registry')
+            print('\n🔴 [rc-env] supported image registry: gcp-artifact-registry')
             exit()
 
         if self.__prod_env is not None and self.__prod_env.image_registry not in ['gcp-artifact-registry']:
-            print(f'\n🔴 [prod-env] supported image registry: gcp-artifact-registry')
+            print('\n🔴 [prod-env] supported image registry: gcp-artifact-registry')
             exit()
 
 
         # VALIDATE IMAGE NAME
         if self.__stg_env is not None and self.__stg_env.image_name is None:
-            print(f'\n🔴 [stg-env] image name is required')
+            print('\n🔴 [stg-env] image name is required')
             exit()
 
         if self.__rc_env is not None and self.__rc_env.image_name is None:
-            print(f'\n🔴 [rc-env] image name is required')
+            print('\n🔴 [rc-env] image name is required')
             exit()
 
         if self.__prod_env is not None and self.__prod_env.image_name is None:
-            print(f'\n🔴 [prod-env] image name is required')
+            print('\n🔴 [prod-env] image name is required')
             exit()
 
         
         # VALIDATE IMAGE NAMESPACE, DEPLOYMENT NAME
         if self.__stg_env is not None and self.__stg_env.deployment_type == 'k8s':
             if self.__stg_env.image_namespace is None:
-                print(f'\n🔴 [stg-env] image namespace is required')
+                print('\n🔴 [stg-env] image namespace is required')
                 exit()
 
             if self.__stg_env.k8s_deployment_name is None:
-                print(f'\n🔴 [stg-env] k8s deployment name is required')
+                print('\n🔴 [stg-env] k8s deployment name is required')
                 exit()
 
         if self.__rc_env is not None and self.__rc_env.deployment_type == 'k8s':
             if self.__rc_env.image_namespace is None:
-                print(f'\n🔴 [rc-env] image namespace is required')
+                print('\n🔴 [rc-env] image namespace is required')
                 exit()
 
             if self.__rc_env.k8s_deployment_name is None:
-                print(f'\n🔴 [rc-env] k8s deployment name is required')
+                print('\n🔴 [rc-env] k8s deployment name is required')
                 exit()
 
         if self.__prod_env is not None and self.__prod_env.deployment_type == 'k8s':
             if self.__prod_env.image_namespace is None:
-                print(f'\n🔴 [prod-env] image namespace is required')
+                print('\n🔴 [prod-env] image namespace is required')
                 exit()
 
             if self.__prod_env.k8s_deployment_name is None:
-                print(f'\n🔴 [prod-env] k8s deployment name is required')
+                print('\n🔴 [prod-env] k8s deployment name is required')
                 exit()
 
 
@@ -191,7 +191,7 @@ class ScripServer:
                 self.__selected_env_code = self.__util.choose('[ask] choose environment?', ['stg'])
 
         if self.__selected_env_code is None:
-            print(f'\n🔴 no environment selected, terminated!')
+            print('\n🔴 no environment selected, terminated!')
             exit()
 
         match self.__selected_env_code:
@@ -208,7 +208,7 @@ class ScripServer:
             exit()
 
         if self.__selected_env.container_cloud_sdk is None:
-            print(f'\n🔴 empty container_cloud_sdk')
+            print('\n🔴 empty container_cloud_sdk')
             exit()
 
 
@@ -217,7 +217,7 @@ class ScripServer:
             exit()
 
         if self.__repository_type not in ['gitlab.com']:
-            print(f'\n🔴 error: unhandled logic')
+            print('\n🔴 error: unhandled logic')
             exit()
 
         if self.__repository_type == 'gitlab.com':
@@ -228,7 +228,7 @@ class ScripServer:
                 exit()
 
             if diffs == 0:
-                print(f'no changes')
+                print('no changes')
             else:
                 self.__util.gitlab_create_mr(self.__conf, self.__selected_env)
 
@@ -310,7 +310,7 @@ class ScripServer:
             exit()
 
         if self.__repository_type not in ['gitlab.com']:
-            print(f'\n🔴 error: unhandled logic')
+            print('\n🔴 error: unhandled logic')
             exit()
 
         if self.__repository_type == 'gitlab.com':
@@ -373,7 +373,7 @@ class ScripServer:
 
             case 'srp: rc':
                 if self.__current_image_version is None and self.__below_env_image_version is None:
-                    print(f'\n🔴 below version not found, expected have stg image version')
+                    print('\n🔴 below version not found, expected have stg image version')
                     exit()
 
                 if (
@@ -392,9 +392,9 @@ class ScripServer:
             case 'sp: prod' | 'srp: prod':
                 if self.__current_image_version is None and self.__below_env_image_version is None:
                     if self.__workflow_env_code == 'sp':
-                        print(f'\n🔴 below version not found, expected have stg image version')
+                        print('\n🔴 below version not found, expected have stg image version')
                     if self.__workflow_env_code == 'srp':
-                        print(f'\n🔴 below version not found, expected have rc image version')
+                        print('\n🔴 below version not found, expected have rc image version')
                     exit()
 
                 if (
@@ -410,7 +410,7 @@ class ScripServer:
                 return
 
         if self.__prefer_next_version is None:
-            print(f'\n🔴 cannot give you the preferable next version')
+            print('\n🔴 cannot give you the preferable next version')
             exit()
 
 
@@ -517,7 +517,7 @@ class ScripServer:
             exit()
 
         if self.__repository_type not in ['gitlab.com']:
-            print(f'\n🔴 error: unhandled logic')
+            print('\n🔴 error: unhandled logic')
             exit()
 
         tag_name: str = f'v{self.__util.get_version_text(self.__user_next_version)}'
@@ -569,7 +569,7 @@ class ScripServer:
         if len(self.__conf.cmds_before_build) == 0:
             return
 
-        print(f'\n→ execute commands before image build')
+        print('\n→ execute commands before image build')
         err_message = self.__util.execute_command_before_image_build(self.__conf)
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
@@ -666,7 +666,7 @@ class ScripServer:
                 exit()
             return
 
-        print(f'\n🔴 cannot find deployment logic for your case')
+        print('\n🔴 cannot find deployment logic for your case')
         exit()
 
 
@@ -679,12 +679,12 @@ class ScripServer:
             self.__util.wait_rolling_update_on_gcp_k8s(self.__selected_env, self.__user_next_version)
             return
 
-        print(f'\n🔴 cannot find wait rolling update logic for your case')
+        print('\n🔴 cannot find wait rolling update logic for your case')
         exit()
 
 
     def __success_message(self):
         time.sleep(3)
-        print(f'\n\n⠀')
+        print('\n\n⠀')
         print('🟢 success')
         exit()

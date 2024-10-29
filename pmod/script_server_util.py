@@ -15,7 +15,7 @@ import re
 from typing import Any, Optional
 from tabulate import tabulate
 from packaging.version import Version
-from pmod.script_server_model import *
+from pmod.script_server_model import ScriptServerConf, ScriptServerEnv
 
 
 class ScriptServerUtil:
@@ -100,7 +100,7 @@ class ScriptServerUtil:
         url    = f'{mr_url}%5B{source}&merge_request%5B{target}'
 
         print(f"have new files from branch '{selected_env.git_prev_branch}' to branch '{selected_env.git_branch}'")
-        print(f'🟠 please do manual MR')
+        print('🟠 please do manual MR')
         print(f'url: {url}')
         exit()
 
@@ -217,7 +217,7 @@ class ScriptServerUtil:
         if repository_type not in ['gitlab.com']:
             return 'unhandled logic'
 
-        print(f'\n→ clean the build directory')
+        print('\n→ clean the build directory')
         cmd = 'chroot /hostfs /bin/bash -c "%s"'
         cmd = cmd % 'rm -rf %s; mkdir -p %s'
         cmd = cmd % (conf.host_build_path, conf.host_build_path)
@@ -234,7 +234,7 @@ class ScriptServerUtil:
             return f'os error code {err_code}'
 
         if conf.git_project_path is not None:
-            print(f'\n→ prepare project directory')
+            print('\n→ prepare project directory')
             cmd = 'chroot /hostfs /bin/bash -c "%s"'
             cmd = cmd % "cd %s; mv %s .___; find . -maxdepth 1 ! -name '.' ! -name '.___'  -exec rm -rf {} +; mv .___/{.,}* .; rm -rf .___"
             cmd = cmd % (conf.host_build_path, conf.git_project_path)
@@ -264,7 +264,7 @@ class ScriptServerUtil:
         
         version: str = self.get_version_text(ver)
 
-        print(f'\n→ checking image on local device')
+        print('\n→ checking image on local device')
         cmd = 'chroot /hostfs /bin/bash -c "%s"'
         cmd = cmd % "docker images %s:%s | awk 'NR>1'"
         cmd = cmd % (selected_env.image_name, version)
@@ -278,7 +278,7 @@ class ScriptServerUtil:
             print('found existing image')
 
         if selected_env.image_name in out:
-            print(f'\n→ delete existing image on local device')
+            print('\n→ delete existing image on local device')
             cmd = 'chroot /hostfs /bin/bash -c "%s"'
             cmd = cmd % 'docker rmi %s:%s'
             cmd = cmd % (selected_env.image_name, version)
@@ -286,7 +286,7 @@ class ScriptServerUtil:
             if err_code != 0:
                 return f'os error code {err_code}'
 
-        print(f'\n→ build image on local device')
+        print('\n→ build image on local device')
         cmd_build_1 = 'docker build --no-cache -f %s --build-arg APP_VERSION=%s --build-arg TZ=%s -t %s .'
         cmd_build_2 = 'docker build --no-cache -f %s --build-arg APP_VERSION=%s --build-arg TZ=%s %s -t %s .'
         cmd = 'chroot /hostfs /bin/bash -c "%s"'
@@ -302,7 +302,7 @@ class ScriptServerUtil:
         err_code = os.system(cmd)
         if err_code != 0:
             return f'os error code {err_code}'
-        print(f'\n⠀')
+        print('\n⠀')
 
         return None
 
@@ -346,7 +346,7 @@ class ScriptServerUtil:
                 break
 
         if rewrite:
-            print(f'\n→ perform resolve nameserver')
+            print('\n→ perform resolve nameserver')
             lines.append(f'\n{ns}\n⠀')
             try:
                 with open(file_path, 'w') as file:
@@ -522,7 +522,3 @@ class ScriptServerUtil:
                 if len(ls_ver) == 1:
                     if ls_ver[0] == image_version:
                         do_loop = False
-
-
-
-
