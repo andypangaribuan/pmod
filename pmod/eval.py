@@ -40,6 +40,25 @@ def print_json(val: str):
         rich.print(val)
 
 
+def replace_env_value(file_path: str, key: str, value: str, print_rewrite: bool = False):
+    index = -1
+    lines = []
+
+    with open(file_path, 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+        for i, line in enumerate(lines):
+            if key in line:
+                index = i
+                break
+
+    if index != -1:
+        lines[index] = f'{key}={value}\n'
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.writelines(lines)
+            if print_rewrite:
+                print('rewrite')
+
+
 def __show(r: requests.Response, style: int):
     match style:
         case 0:
