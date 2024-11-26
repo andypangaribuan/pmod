@@ -24,8 +24,8 @@ def get_env(*args) -> dict:
     return env
 
 
-def get(url: str, style: int = 0, header: dict[str, str] = None):
-    r = requests.get(url, headers=header)
+def get(url: str, style: int = 0, header: dict[str, str] = None, params: any = None):
+    r = requests.get(url, headers=header, params=params)
     __show(r, style)
     return r.status_code, r.text
 
