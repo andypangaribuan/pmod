@@ -77,4 +77,8 @@ def __show(r: requests.Response, style: int):
             print_json(r.text)
 
         case 1:
+            print(f'status: {r.status_code}')
+            print_json(r.text)
+
+        case 2:
             print_json(r.text)
