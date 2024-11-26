@@ -10,6 +10,9 @@
 import json
 import rich
 import requests
+from pygments import highlight
+from pygments.lexers.data import JsonLexer
+from pygments.formatters import TerminalFormatter
 from dotenv import dotenv_values
 
 
@@ -35,9 +38,14 @@ def post(url: str, style: int = 0, header: dict[str, str] | None = None, json: a
 
 def print_json(val: str):
     try:
-        rich.print_json(val)
+        json_object = json.loads(val)
+        json_str = json.dumps(json_object, indent=4, sort_keys=True)
+        print(highlight(json_str, JsonLexer(), TerminalFormatter()))
     except Exception as _:
-        rich.print(val)
+        try:
+            rich.print_json(val)
+        except Exception as _:
+            rich.print(val)
 
 
 def replace_env_value(file_path: str, key: str, value: str, print_rewrite: bool = False):
