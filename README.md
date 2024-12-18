@@ -14,9 +14,14 @@ Focus on simplicity, speed and safety.
 ## Use
 
 ```sh
-pip install dist/pmod-0.0.4.tar.gz
-pip install https://github.com/andypangaribuan/pmod/releases/download/v0.0.4/pmod-v0.0.4.tar.gz
+pip install dist/pmod-0.0.10.tar.gz
+pip install https://github.com/andypangaribuan/pmod/releases/download/v0.0.10/pmod-v0.0.10.tar.gz
 pip install https://github.com/andypangaribuan/pmod/releases/latest/download/pmod.tar.gz
+```
+
+or using requirements.txt
+```text
+pmod @ git+https://github.com/andypangaribuan/pmod@v0.0.10
 ```
 
 ## When error occurs

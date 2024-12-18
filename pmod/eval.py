@@ -10,11 +10,18 @@
 import json
 import rich
 import requests
+import sys
 from pygments import highlight
 from pygments.lexers.data import JsonLexer
 from pygments.formatters import TerminalFormatter
 from dotenv import dotenv_values
+from typing import cast, TypeVar, Callable, Coroutine, Generic
+from unsync import unsync
+from grpclib.client import Channel
 
+
+T = TypeVar("T")
+Y = TypeVar("Y")
 
 
 def get_env(*args) -> dict:
@@ -82,3 +89,26 @@ def __show(r: requests.Response, style: int):
 
         case 2:
             print_json(r.text)
+
+
+class GrpcClient(Generic[Y]):
+    def __init__(self, url: str, stub: Y):
+        self.host = url.split(':')[0]
+        self.port = int(url.split(':')[1])
+        self.stub = stub
+
+    def call(self, type: T, func: Callable[[Y], Coroutine]) -> T:
+        try:
+            res = self.__exec(func).result()
+            return cast(type, res)
+        except Exception as e:
+            message = str(e)
+            sys.exit('unable to connect to grpc server' if 'Connect call failed' in message else message)
+
+    @unsync
+    async def __exec(self, call: Callable[[Y], Coroutine]):
+        channel = Channel(host=self.host, port=self.port, ssl=self.port == 443)
+        service = self.stub(channel=channel)
+        res = await call(service)
+        channel.close()
+        return res
