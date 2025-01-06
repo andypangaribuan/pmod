@@ -243,8 +243,18 @@ class ScriptServerUtil:
                 return f'os error code {err_code}'
 
 
-    def execute_command_before_image_build(self, conf: ScriptServerConf) -> Optional[str]:
+    def execute_command_before_image_build(self, conf: ScriptServerConf, selected_env: ScriptServerEnv) -> Optional[str]:
         for i in range(len(conf.cmds_before_build)):
+            print(f'- execute command {i+1}/{len(conf.cmds_before_build)}')
+
+            cmd = 'chroot /hostfs /bin/bash -c "%s"'
+            cmd = cmd % 'cd %s; %s'
+            cmd = cmd % (conf.host_build_path, conf.cmds_before_build[i])
+            err_code = os.system(cmd)
+            if err_code != 0:
+                return f'os error code {err_code} from command "{conf.cmds_before_build[i]}"'
+        
+        for i in range(len(selected_env.cmds_before_build)):
             print(f'- execute command {i+1}/{len(conf.cmds_before_build)}')
 
             cmd = 'chroot /hostfs /bin/bash -c "%s"'

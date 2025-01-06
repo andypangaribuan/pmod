@@ -580,12 +580,11 @@ class ScripServer:
         if self.__conf.terminate_when == 'execute-commands-before-image-build':
             exit()
 
-        if len(self.__conf.cmds_before_build) == 0:
+        if len(self.__conf.cmds_before_build) == 0 and len(self.__selected_env.cmds_before_build) == 0:
             return
 
         print('\n→ execute commands before image build')
-        err_message = self.__util.execute_command_before_image_build(
-            self.__conf)
+        err_message = self.__util.execute_command_before_image_build(self.__conf, self.__selected_env)
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
             exit()
