@@ -255,14 +255,14 @@ class ScriptServerUtil:
                 return f'os error code {err_code} from command "{conf.cmds_before_build[i]}"'
         
         for i in range(len(selected_env.cmds_before_build)):
-            print(f'- execute command {i+1}/{len(conf.cmds_before_build)}')
+            print(f'- execute command {i+1}/{len(selected_env.cmds_before_build)}')
 
             cmd = 'chroot /hostfs /bin/bash -c "%s"'
             cmd = cmd % 'cd %s; %s'
-            cmd = cmd % (conf.host_build_path, conf.cmds_before_build[i])
+            cmd = cmd % (conf.host_build_path, selected_env.cmds_before_build[i])
             err_code = os.system(cmd)
             if err_code != 0:
-                return f'os error code {err_code} from command "{conf.cmds_before_build[i]}"'
+                return f'os error code {err_code} from command "{selected_env.cmds_before_build[i]}"'
 
         return None
 
