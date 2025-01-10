@@ -216,28 +216,36 @@ class ScriptServerUtil:
     def git_clone(self, conf: ScriptServerConf, tag_name: str, repository_type: str) -> Optional[str]:
         if repository_type not in ['gitlab.com']:
             return 'unhandled logic'
+        
+        host_build_path = f'/hostfs{conf.host_build_path}'
 
         print('\n→ clean the build directory')
-        cmd = 'chroot /hostfs /bin/bash -c "%s"'
-        cmd = cmd % 'rm -rf %s; mkdir -p %s'
-        cmd = cmd % (conf.host_build_path, conf.host_build_path)
+        # cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        # cmd = cmd % 'rm -rf %s; mkdir -p %s'
+        # cmd = cmd % (conf.host_build_path, conf.host_build_path)
+        cmd = 'rm -rf %s; mkdir -p %s'
+        cmd = cmd % (host_build_path, host_build_path)
         err_code = os.system(cmd)
         if err_code != 0:
             return f'os error code {err_code}'
 
         print(f'\n→ clone the git project, tag: {tag_name}')
-        cmd = 'chroot /hostfs /bin/bash -c "%s"'
-        cmd = cmd % 'cd %s; git clone --quiet -c advice.detachedHead=false --depth 1 --branch %s https://%s:%s@%s.git .'
-        cmd = cmd % (conf.host_build_path, tag_name, conf.git_user, conf.git_pass, conf.git_repo)
+        # cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        # cmd = cmd % 'cd %s; git clone --quiet -c advice.detachedHead=false --depth 1 --branch %s https://%s:%s@%s.git .'
+        # cmd = cmd % (conf.host_build_path, tag_name, conf.git_user, conf.git_pass, conf.git_repo)
+        cmd = 'cd %s; git clone --quiet -c advice.detachedHead=false --depth 1 --branch %s https://%s:%s@%s.git .'
+        cmd = cmd % (host_build_path, tag_name, conf.git_user, conf.git_pass, conf.git_repo)
         err_code = os.system(cmd)
         if err_code != 0:
             return f'os error code {err_code}'
 
         if conf.git_project_path is not None:
             print('\n→ prepare project directory')
-            cmd = 'chroot /hostfs /bin/bash -c "%s"'
+            # cmd = 'chroot /hostfs /bin/bash -c "%s"'
+            # cmd = cmd % "cd %s; mv %s .___; find . -maxdepth 1 ! -name '.' ! -name '.___'  -exec rm -rf {} +; mv .___/{.,}* .; rm -rf .___"
+            # cmd = cmd % (conf.host_build_path, conf.git_project_path)
             cmd = cmd % "cd %s; mv %s .___; find . -maxdepth 1 ! -name '.' ! -name '.___'  -exec rm -rf {} +; mv .___/{.,}* .; rm -rf .___"
-            cmd = cmd % (conf.host_build_path, conf.git_project_path)
+            cmd = cmd % (host_build_path, conf.git_project_path)
             err_code = os.system(cmd)
             if err_code != 0:
                 return f'os error code {err_code}'
