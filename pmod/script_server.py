@@ -83,6 +83,8 @@ class ScripServer:
             self.__workflow_env_code = 'srp'
         elif self.__stg_env is not None and self.__prod_env is not None:
             self.__workflow_env_code = 'sp'
+        elif self.__stg_env is not None and self.__rc_env is not None:
+            self.__workflow_env_code = 'sr'
         elif self.__stg_env is not None:
             self.__workflow_env_code = 's'
         else:
@@ -125,8 +127,7 @@ class ScripServer:
             exit()
 
         if self.__prod_env is not None and self.__prod_env.image_registry not in ['gcp-artifact-registry']:
-            print(
-                '\n🔴 [prod-env] supported image registry: gcp-artifact-registry')
+            print('\n🔴 [prod-env] supported image registry: gcp-artifact-registry')
             exit()
 
         # VALIDATE IMAGE NAME
@@ -176,14 +177,13 @@ class ScripServer:
 
         match self.__workflow_env_code:
             case 'srp':
-                self.__selected_env_code = self.__util.choose(
-                    '[ask] choose environment?', ['stg', 'rc', 'prod'])
+                self.__selected_env_code = self.__util.choose('[ask] choose environment?', ['stg', 'rc', 'prod'])
             case 'sp':
-                self.__selected_env_code = self.__util.choose(
-                    '[ask] choose environment?', ['stg', 'prod'])
+                self.__selected_env_code = self.__util.choose('[ask] choose environment?', ['stg', 'prod'])
+            case 'sr':
+                self.__selected_env_code = self.__util.choose('[ask] choose environment?', ['stg', 'rc'])
             case 's':
-                self.__selected_env_code = self.__util.choose(
-                    '[ask] choose environment?', ['stg'])
+                self.__selected_env_code = self.__util.choose('[ask] choose environment?', ['stg'])
 
         if self.__selected_env_code is None:
             print('\n🔴 no environment selected, terminated!')
@@ -214,10 +214,8 @@ class ScripServer:
             exit()
 
         if self.__repository_type == 'gitlab.com':
-            print(
-                f'\n→ call gitlab api: diff branch ({self.__selected_env.git_prev_branch} → {self.__selected_env.git_branch})')
-            diffs, err = self.__util.gitlab_diff_branch(
-                self.__conf, self.__selected_env.git_prev_branch, self.__selected_env.git_branch)
+            print(f'\n→ call gitlab api: diff branch ({self.__selected_env.git_prev_branch} → {self.__selected_env.git_branch})')
+            diffs, err = self.__util.gitlab_diff_branch(self.__conf, self.__selected_env.git_prev_branch, self.__selected_env.git_branch)
             if err is not None:
                 print(f'🔴 error: {err}')
                 exit()
@@ -244,8 +242,7 @@ class ScripServer:
         err: str = None
         current_version: Version = None
 
-        current_version, err = self.__util.fetch_latest_image_version(
-            current[0], current[1])
+        current_version, err = self.__util.fetch_latest_image_version(current[0], current[1])
         if err is not None:
             if 'TAG not found in' not in err:
                 exit()
@@ -280,20 +277,26 @@ class ScripServer:
                     case 'prod':
                         below = [self.__stg_env, 'stg']
 
+            case 'sr':
+                match self.__selected_env_code:
+                    case 'stg':
+                        above = [self.__rc_env, 'rc']
+
+                    case 'rc':
+                        below = [self.__stg_env, 'stg']
+
         err: str = None
         below_env_image_version: Version = None
         above_env_image_version: Version = None
 
         if below is not None:
-            below_env_image_version, err = self.__util.fetch_latest_image_version(
-                below[0], below[1])
+            below_env_image_version, err = self.__util.fetch_latest_image_version(below[0], below[1])
             if err is not None:
                 print(f'🔴 error: {err}')
                 exit()
 
         if above is not None:
-            above_env_image_version, err = self.__util.fetch_latest_image_version(
-                above[0], above[1])
+            above_env_image_version, err = self.__util.fetch_latest_image_version(above[0], above[1])
             if err is not None:
                 print(f'🔴 error: {err}')
                 exit()
@@ -317,17 +320,14 @@ class ScripServer:
             if self.__conf.git_tag_prefix is not None:
                 git_tag = f'{git_tag}{self.__conf.git_tag_prefix}'
 
-            print(
-                f'\n→ call gitlab api: diff (branch:{self.__selected_env.git_branch} → tag:{git_tag})')
-            diffs, err_message = self.__util.gitlab_diff_branch(
-                self.__conf, self.__selected_env.git_branch, git_tag)
+            print(f'\n→ call gitlab api: diff (branch:{self.__selected_env.git_branch} → tag:{git_tag})')
+            diffs, err_message = self.__util.gitlab_diff_branch(self.__conf, self.__selected_env.git_branch, git_tag)
             if err_message is not None:
                 print(f'🔴 error: {err_message}')
                 exit()
 
             if diffs == 0:
-                print(
-                    f"no changes from branch '{self.__selected_env.git_branch}' with tag '{git_tag}'")
+                print(f"no changes from branch '{self.__selected_env.git_branch}' with tag '{git_tag}'")
                 exit()
 
             print(f'have {diffs} diff, good to go')
@@ -345,39 +345,33 @@ class ScripServer:
                     self.__prefer_next_version = stg_start_version
                     return
 
-                self.__prefer_next_version = self.__util.increase_version(
-                    self.__current_image_version)
+                self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
                 return
 
-            case 'sp: stg' | 'srp: stg':
+            case 'sp: stg' | 'sr: stg' | 'srp: stg':
                 if self.__current_image_version is None:
                     self.__prefer_next_version = stg_start_version
                     return
 
                 if self.__above_env_image_version is None:
-                    self.__prefer_next_version = self.__util.increase_version(
-                        self.__current_image_version)
+                    self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
                     return
 
                 if self.__current_image_version.major >= self.__above_env_image_version.major:     # X._._._
                     if self.__current_image_version.minor > self.__above_env_image_version.minor:  # O.X._._
-                        self.__prefer_next_version = self.__util.increase_version(
-                            self.__current_image_version)
+                        self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
                         return
 
                     if self.__current_image_version.micro > self.__above_env_image_version.micro:  # O.O.X._
-                        self.__prefer_next_version = self.__util.increase_version(
-                            self.__current_image_version)
+                        self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
                         return
 
-                    self.__prefer_next_version = Version(
-                        f'{self.__current_image_version.major}.{self.__current_image_version.minor}.{self.__current_image_version.micro+1}.1')
+                    self.__prefer_next_version = Version(f'{self.__current_image_version.major}.{self.__current_image_version.minor}.{self.__current_image_version.micro+1}.1')
                     return
 
-            case 'srp: rc':
+            case 'sr: rc' | 'srp: rc':
                 if self.__current_image_version is None and self.__below_env_image_version is None:
-                    print(
-                        '\n🔴 below version not found, expected have stg image version')
+                    print('\n🔴 below version not found, expected have stg image version')
                     exit()
 
                 if (
@@ -386,22 +380,18 @@ class ScripServer:
                     self.__below_env_image_version.minor > self.__current_image_version.minor or  # O.X._._
                     self.__below_env_image_version.micro > self.__current_image_version.micro    # O.O.X._
                 ):
-                    self.__prefer_next_version = Version(
-                        f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}.rc1')
+                    self.__prefer_next_version = Version(f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}.rc1')
                     return
 
-                self.__prefer_next_version = self.__util.increase_version(
-                    self.__current_image_version)
+                self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
                 return
 
             case 'sp: prod' | 'srp: prod':
                 if self.__current_image_version is None and self.__below_env_image_version is None:
                     if self.__workflow_env_code == 'sp':
-                        print(
-                            '\n🔴 below version not found, expected have stg image version')
+                        print('\n🔴 below version not found, expected have stg image version')
                     if self.__workflow_env_code == 'srp':
-                        print(
-                            '\n🔴 below version not found, expected have rc image version')
+                        print('\n🔴 below version not found, expected have rc image version')
                     exit()
 
                 if (
@@ -410,12 +400,10 @@ class ScripServer:
                     self.__below_env_image_version.minor > self.__current_image_version.minor or  # O.X._._
                     self.__below_env_image_version.micro > self.__current_image_version.micro     # O.O.X._
                 ):
-                    self.__prefer_next_version = Version(
-                        f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}')
+                    self.__prefer_next_version = Version(f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}')
                     return
 
-                self.__prefer_next_version = self.__util.increase_version(
-                    self.__current_image_version)
+                self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
                 return
 
         if self.__prefer_next_version is None:
@@ -426,8 +414,7 @@ class ScripServer:
         if self.__conf.terminate_when == 'ask-user-next-version':
             exit()
 
-        print(
-            f'\n❖ preferable next version: {self.__util.get_version_text(self.__prefer_next_version)}')
+        print(f'\n❖ preferable next version: {self.__util.get_version_text(self.__prefer_next_version)}')
 
         def validate_major_minor_micro(input_version: Version) -> Optional[str]:
             if input_version.major < self.__prefer_next_version.major:
@@ -468,10 +455,8 @@ class ScripServer:
                         err_message = validate_major_minor_micro(input_version)
 
                     if err_message is None:
-                        _, nano_value = self.__util.get_last_index_version(
-                            input_version)
-                        _, prefer_nano_value = self.__util.get_last_index_version(
-                            self.__prefer_next_version)
+                        _, nano_value = self.__util.get_last_index_version(input_version)
+                        _, prefer_nano_value = self.__util.get_last_index_version(self.__prefer_next_version)
                         if nano_value < prefer_nano_value:
                             err_message = f'🔴 nano version "{nano_value}" cannot less than prefer next version "{prefer_nano_value}"'
 
@@ -502,8 +487,7 @@ class ScripServer:
                 continue
 
             if self.__prefer_next_version is not None and input_version.public != self.__prefer_next_version.public:
-                print(
-                    '[ask] preferable next version and yours is not same, continue? (yes, no or cancel)')
+                print('[ask] preferable next version and yours is not same, continue? (yes, no or cancel)')
                 while True:
                     input_value = input()
 
@@ -537,8 +521,7 @@ class ScripServer:
 
         if self.__repository_type == 'gitlab.com':
             print('\n→ find tag on gitlab')
-            tag_exists, err_message = self.__util.gitlab_find_tag(
-                self.__conf, tag_name)
+            tag_exists, err_message = self.__util.gitlab_find_tag(self.__conf, tag_name)
             if err_message is not None:
                 print(f'\n🔴 error: {err_message}')
                 exit()
@@ -546,18 +529,15 @@ class ScripServer:
             if tag_exists:
                 print(f'tag {tag_name} already exists')
                 print('\n→ delete the existing tag')
-                err_message = self.__util.gitlab_delete_tag(
-                    self.__conf, tag_name)
+                err_message = self.__util.gitlab_delete_tag(self.__conf, tag_name)
                 if err_message is not None:
                     print(f'\n🔴 error: {err_message}')
                     exit()
             else:
                 print(f'tag {tag_name} not exists')
 
-            print(
-                f'\n→ create git tag {tag_name} from branch {self.__selected_env.git_branch}')
-            err_message = self.__util.gitlab_create_tag(
-                self.__conf, tag_name, self.__selected_env.git_branch)
+            print(f'\n→ create git tag {tag_name} from branch {self.__selected_env.git_branch}')
+            err_message = self.__util.gitlab_create_tag(self.__conf, tag_name, self.__selected_env.git_branch)
             if err_message is not None:
                 print(f'\n🔴 error: {err_message}')
                 exit()
@@ -570,8 +550,7 @@ class ScripServer:
         if self.__conf.git_tag_prefix is not None:
             tag_name = f'{tag_name}{self.__conf.git_tag_prefix}'
 
-        err_message = self.__util.git_clone(
-            self.__conf, tag_name, self.__repository_type)
+        err_message = self.__util.git_clone(self.__conf, tag_name, self.__repository_type)
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
             exit()
@@ -606,11 +585,9 @@ class ScripServer:
 
         add_build_arg: str = None
         if self.__add_build_arg_func is not None:
-            add_build_arg = self.__add_build_arg_func(
-                self.__selected_env_code, self.__util.get_version_text(self.__user_next_version))
+            add_build_arg = self.__add_build_arg_func(self.__selected_env_code, self.__util.get_version_text(self.__user_next_version))
 
-        err_message = self.__util.build_image(
-            self.__conf, self.__selected_env, self.__user_next_version, add_build_arg)
+        err_message = self.__util.build_image(self.__conf, self.__selected_env, self.__user_next_version, add_build_arg)
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
             exit()
@@ -620,8 +597,7 @@ class ScripServer:
             exit()
 
         print('\n→ perform image push')
-        err_message = self.__util.push_image(
-            self.__selected_env, self.__user_next_version)
+        err_message = self.__util.push_image(self.__selected_env, self.__user_next_version)
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
             exit()
@@ -631,8 +607,7 @@ class ScripServer:
             exit()
 
         print('\n→ delete existing image')
-        err_message = self.__util.delete_image(
-            self.__selected_env, self.__user_next_version)
+        err_message = self.__util.delete_image(self.__selected_env, self.__user_next_version)
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
             exit()
@@ -672,8 +647,7 @@ class ScripServer:
 
         if self.__selected_env.hosting_type == 'gcp' and self.__selected_env.deployment_type == 'k8s':
             print('\n→ perform deployment on gcp kubernetes')
-            err_message = self.__util.deploy_on_gcp_k8s(
-                self.__selected_env, self.__user_next_version)
+            err_message = self.__util.deploy_on_gcp_k8s(self.__selected_env, self.__user_next_version)
             if err_message is not None:
                 print(f'\n🔴 error: {err_message}')
                 exit()
@@ -688,8 +662,7 @@ class ScripServer:
 
         if self.__selected_env.hosting_type == 'gcp' and self.__selected_env.deployment_type == 'k8s':
             print('\n→ wait for rolling update')
-            self.__util.wait_rolling_update_on_gcp_k8s(
-                self.__selected_env, self.__user_next_version)
+            self.__util.wait_rolling_update_on_gcp_k8s(self.__selected_env, self.__user_next_version)
             return
 
         print('\n🔴 cannot find wait rolling update logic for your case')
