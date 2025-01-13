@@ -8,7 +8,7 @@ authors = [
     {name = "Andy Pangaribuan", email = "iam.pangaribuan@gmail.com"}
 ]
 description = "python module"
-version = "0.0.13"
+version = "0.0.14"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
