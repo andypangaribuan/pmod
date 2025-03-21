@@ -1,11 +1,10 @@
 #
-# Copyright (c) 2024.
+# Copyright (c) 2025.
 # Created by Andy Pangaribuan <https://github.com/apangaribuan>.
 #
 # This product is protected by copyright and distributed under
 # licenses restricting copying, distribution and decompilation.
 # All Rights Reserved.
-#
 
 from pmod.ext import *
 from pmod.core import *
