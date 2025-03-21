@@ -7,7 +7,6 @@
 # All Rights Reserved.
 
 from pmod.ext import *
-from pmod.core import *
 from pmod.dbx import *
 from pmod.script_server import *
 from pmod.script_server_model import *
