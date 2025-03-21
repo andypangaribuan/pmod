@@ -33,7 +33,7 @@ function help {
 #: generate the distribution
 function build {
   rm -rf dist pmod.egg-info
-  pip install -q build
+  # pip install -q build
   python -m build
 }
 
