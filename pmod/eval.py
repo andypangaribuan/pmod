@@ -10,6 +10,7 @@ import rich
 import requests
 import sys
 from pygments import highlight
+from pygments.lexers import get_lexer_by_name
 from pygments.lexers.data import JsonLexer
 from pygments.formatters import TerminalFormatter
 from dotenv import dotenv_values
@@ -51,6 +52,10 @@ def print_json(val: str):
       rich.print_json(val)
     except Exception as _:
       rich.print(val)
+
+
+def print_make(val: str):
+  print(highlight(val, get_lexer_by_name("make"), TerminalFormatter()))
 
 
 def replace_env_value(file_path: str, key: str, value: str, print_rewrite: bool = False):

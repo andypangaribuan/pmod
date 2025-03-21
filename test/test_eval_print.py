@@ -6,22 +6,21 @@
 # All Rights Reserved.
 
 # %%
+import os
+import sys
+sys.path.insert(1, os.path.split(
+    os.path.dirname(os.path.abspath(__file__)))[0])
+
+# %%
 # test eval print
-import pmod
+from pmod import eval
 
-
-from pygments import highlight
-from pygments.lexers import get_lexer_by_name
-from pygments.formatters import TerminalFormatter
-
-result = f'''
+eval.print_make(f'''
 process     : BUY
 amount_type : currency
 amount_value: 1000
 total_unit  : 100.123
-'''
-
-print(highlight(result, get_lexer_by_name("make"), TerminalFormatter()))
+''')
 
 
 

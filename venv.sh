@@ -4,122 +4,113 @@
 # usage: source ./venv.sh activate
 
 print_help() {
-    echo "Usage: $0 [option] [env_name]"
-    echo "Options:"
-    echo "  create      Create a new virtual environment"
-    echo "  activate    Activate the virtual environment"
-    echo "  install     Install dependencies from requirements.txt or setup.py"
-    echo "  export      Export installed dependencies to requirements.txt within a virtual environment (default name: .venv)"
-    echo "  remove      Deactivate and remove the virtual environment"
+  echo "Usage: $0 [option] [env_name]"
+  echo "Options:"
+  echo "  create      Create a new virtual environment"
+  echo "  activate    Activate the virtual environment"
+  echo "  install     Install dependencies from requirements.txt or setup.py"
+  echo "  export      Export installed dependencies to requirements.txt within a virtual environment (default name: .venv)"
+  echo "  remove      Deactivate and remove the virtual environment"
 }
 
 
-check_virtualenv() {
-    if ! command -v virtualenv &> /dev/null; then
-        echo "virtualenv is not installed. Installing..."
-        pip install virtualenv
-        echo "virtualenv installation complete."
-    fi
-}
+# check_venv() {
+#   if ! command -v virtualenv &> /dev/null; then
+#     echo "virtualenv is not installed. Installing..."
+#     pip install virtualenv
+#     echo "virtualenv installation complete."
+#   fi
+# }
 
 
 create_venv() {
-    # Check if virtualenv is installed, if not, install it
-    check_virtualenv
+  # Check if virtualenv is installed, if not, install it
+  # check_venv
     
-    local env_name=${1:-".venv"}
+  local env_name=${1:-".venv"}
 
-    if [ -d "$env_name" ]; then
-        echo "Virtual environment '$env_name' already exists. Aborting."
-        exit 0
-    fi
+  if [ -d "$env_name" ]; then
+    echo "Virtual environment '$env_name' already exists. Aborting."
+    exit 0
+  fi
 
-    python3 -m venv "$env_name"
-    source "./$env_name/bin/activate"
-    pip install -U pip
+  python -m venv "$env_name"
+  source "./$env_name/bin/activate"
+  # pip install -U pip
 }
 
 
 activate_venv() {
-    local env_name=${1:-".venv"}
+  local env_name=${1:-".venv"}
 
-    if [ ! -d "$env_name" ]; then
-        echo "Virtual environment '$env_name' not found. Use '$0 create [env_name]' to create one."
-        exit 0
-    fi
+  if [ ! -d "$env_name" ]; then
+    echo "Virtual environment '$env_name' not found. Use '$0 create [env_name]' to create one."
+    exit 0
+  fi
 
-    source "./$env_name/bin/activate"
+  source "./$env_name/bin/activate"
 }
 
 install_deps() {
-    local env_name=${1:-".venv"}
+  local env_name=${1:-".venv"}
 
-    if [ ! -d "$env_name" ]; then
-        echo "Virtual environment '$env_name' not found. Use '$0 create [env_name]' to create one."
-        exit 0
-    fi
+  if [ ! -d "$env_name" ]; then
+    echo "Virtual environment '$env_name' not found. Use '$0 create [env_name]' to create one."
+    exit 0
+  fi
 
-    source "./$env_name/bin/activate"
+  source "./$env_name/bin/activate"
 
-    if [ -f "requirements.txt" ]; then
-        pip install -r ./requirements.txt
-    fi
+  if [ -f "requirements.txt" ]; then
+    pip install -r ./requirements.txt
+  fi
 
-    if [ -f "setup.py" ]; then
-        pip install -e .
-    fi
+  if [ -f "setup.py" ]; then
+    pip install -e .
+  fi
 }
 
 export_deps() {
-    local env_name=${1:-".venv"}
+  local env_name=${1:-".venv"}
 
-    if [ ! -d "$env_name" ]; then
-        echo "Virtual environment '$env_name' not found. Use '$0 create [env_name]' to create one."
-        exit 0
-    fi
+  if [ ! -d "$env_name" ]; then
+    echo "Virtual environment '$env_name' not found. Use '$0 create [env_name]' to create one."
+    exit 0
+  fi
 
-    source "./$env_name/bin/activate"
-    pip freeze > requirements.txt
-    echo "Dependencies exported to requirements.txt"
+  source "./$env_name/bin/activate"
+  pip freeze > requirements.txt
+  echo "Dependencies exported to requirements.txt"
 }
 
 remove_venv() {
-    local env_name=${1:-".venv"}
+  local env_name=${1:-".venv"}
 
-    if [ ! -d "$env_name" ]; then
-        echo "Virtual environment '$env_name' not found."
-        exit 0
-    fi
+  if [ ! -d "$env_name" ]; then
+    echo "Virtual environment '$env_name' not found."
+    exit 0
+  fi
 
-    deactivate
-    rm -rf "$env_name"
+  deactivate
+  rm -rf "$env_name"
 }
 
+
 if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-    print_help
-    exit 0
+  print_help
+  exit 0
 fi
 
 
 case "$1" in
-    "create")
-        create_venv "$2"
-        ;;
-    "activate")
-        activate_venv "$2"
-        ;;
-    "install")
-        install_deps "$2"
-        ;;
-    "export")
-        export_deps "$2"
-        ;;
-    "remove")
-        remove_venv "$2"
-        ;;
-    *)
-        echo "Unknown option: $1"
-        print_help
-        exit 1
-        ;;
+  "create") create_venv "$2" ;;
+  "activate") activate_venv "$2" ;;
+  "install") install_deps "$2" ;;
+  "export") export_deps "$2" ;;
+  "remove") remove_venv "$2" ;;
+  *)
+    echo "Unknown option: $1"
+    print_help
+    exit 1
+    ;;
 esac
