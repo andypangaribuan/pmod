@@ -2,8 +2,11 @@ pangaribuan
 decompilation
 
 
+venv
 pmod
 jons
 dotenv
 unsync
 grpclib
+psycopg2
+ipykernel
