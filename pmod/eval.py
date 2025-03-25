@@ -69,9 +69,21 @@ def post(url: str, style: HttpStyle = HttpStyle.hidden, header: dict[str, str] |
   return req.status_code, req.text
 
 
+def put(url: str, style: HttpStyle = HttpStyle.hidden, header: dict[str, str] | None = None, body: any = None, files: any = None, params: any = None):
+  req = requests.put(url, headers=header, json=body, files=files, params=params)
+  __show('put', req, style)
+  return req.status_code, req.text
+
+
+def path(url: str, style: HttpStyle = HttpStyle.hidden, header: dict[str, str] | None = None, body: any = None, files: any = None, params: any = None):
+  req = requests.patch(url, headers=header, json=body, files=files, params=params)
+  __show('patch', req, style)
+  return req.status_code, req.text
+
+
 def delete(url: str, style: HttpStyle = HttpStyle.hidden, header: dict[str, str] | None = None, params: any = None):
   req = requests.delete(url, headers=header, params=params)
-  __show('post', req, style)
+  __show('delete', req, style)
   return req.status_code, req.text
 
 
