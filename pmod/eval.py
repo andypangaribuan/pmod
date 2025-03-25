@@ -30,39 +30,12 @@ class HttpStyle(Enum):
   content_only = 2
 
 
+
 def get_env(*args) -> dict:
   env = {}
   for arg in args:
     env.update(dotenv_values(arg))
   return env
-
-
-def get(url: str, style: HttpStyle = HttpStyle.hidden, header: dict[str, str] = None, params: any = None):
-  r = requests.get(url, headers=header, params=params)
-  __show('get', r, style)
-  return r.status_code, r.text
-
-
-def post(url: str, style: HttpStyle = HttpStyle.hidden, header: dict[str, str] | None = None, json: any = None, files: any = None, params: any = None):
-  r = requests.post(url, headers=header, json=json, files=files, params=params)
-  __show('post', r, style)
-  return r.status_code, r.text
-
-
-def print_json(val: str):
-  try:
-    json_object = json.loads(val)
-    json_str = json.dumps(json_object, indent=2, sort_keys=True)
-    print(highlight(json_str, get_lexer_by_name("json"), TerminalFormatter()))
-  except Exception as _:
-    try:
-      rich.print_json(val)
-    except Exception as _:
-      rich.print(val)
-
-
-def print_make(val: str):
-  print(highlight(val, get_lexer_by_name("make"), TerminalFormatter()))
 
 
 def replace_env_value(file_path: str, key: str, value: str, print_rewrite: bool = False):
@@ -82,6 +55,40 @@ def replace_env_value(file_path: str, key: str, value: str, print_rewrite: bool 
       file.writelines(lines)
       if print_rewrite:
         print('rewrite')
+
+
+def get(url: str, style: HttpStyle=HttpStyle.hidden, header: dict[str, str] | None=None, params: any=None):
+  req = requests.get(url, headers=header, params=params)
+  __show('get', req, style)
+  return req.status_code, req.text
+
+
+def post(url: str, style: HttpStyle = HttpStyle.hidden, header: dict[str, str] | None = None, body: any = None, files: any = None, params: any = None):
+  req = requests.post(url, headers=header, json=body, files=files, params=params)
+  __show('post', req, style)
+  return req.status_code, req.text
+
+
+def delete(url: str, style: HttpStyle = HttpStyle.hidden, header: dict[str, str] | None = None, params: any = None):
+  req = requests.delete(url, headers=header, params=params)
+  __show('post', req, style)
+  return req.status_code, req.text
+
+
+def print_json(val: str):
+  try:
+    json_object = json.loads(val)
+    json_str = json.dumps(json_object, indent=2, sort_keys=True)
+    print(highlight(json_str, get_lexer_by_name("json"), TerminalFormatter()))
+  except Exception as _:
+    try:
+      rich.print_json(val)
+    except Exception as _:
+      rich.print(val)
+
+
+def print_make(val: str):
+  print(highlight(val, get_lexer_by_name("make"), TerminalFormatter()))
 
 
 def __show(http_method: str, response: requests.Response, style: HttpStyle):
