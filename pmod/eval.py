@@ -9,9 +9,10 @@ import json
 import rich
 import requests
 import sys
+from enum import Enum
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
-from pygments.lexers.data import JsonLexer
+# from pygments.lexers.data import JsonLexer
 from pygments.formatters import TerminalFormatter
 from dotenv import dotenv_values
 from typing import cast, TypeVar, Callable, Coroutine, Generic
@@ -23,6 +24,12 @@ T = TypeVar("T")
 Y = TypeVar("Y")
 
 
+class HttpStyle(Enum):
+  hidden = -1
+  with_header = 1
+  content_only = 2
+
+
 def get_env(*args) -> dict:
   env = {}
   for arg in args:
@@ -30,23 +37,23 @@ def get_env(*args) -> dict:
   return env
 
 
-def get(url: str, style: int = 0, header: dict[str, str] = None, params: any = None):
+def get(url: str, style: HttpStyle = HttpStyle.hidden, header: dict[str, str] = None, params: any = None):
   r = requests.get(url, headers=header, params=params)
-  __show(r, style)
+  __show('get', r, style)
   return r.status_code, r.text
 
 
-def post(url: str, style: int = 0, header: dict[str, str] | None = None, json: any = None, files: any = None, params: any = None):
+def post(url: str, style: HttpStyle = HttpStyle.hidden, header: dict[str, str] | None = None, json: any = None, files: any = None, params: any = None):
   r = requests.post(url, headers=header, json=json, files=files, params=params)
-  __show(r, style)
+  __show('post', r, style)
   return r.status_code, r.text
 
 
 def print_json(val: str):
   try:
     json_object = json.loads(val)
-    json_str = json.dumps(json_object, indent=4, sort_keys=True)
-    print(highlight(json_str, JsonLexer(), TerminalFormatter()))
+    json_str = json.dumps(json_object, indent=2, sort_keys=True)
+    print(highlight(json_str, get_lexer_by_name("json"), TerminalFormatter()))
   except Exception as _:
     try:
       rich.print_json(val)
@@ -77,21 +84,19 @@ def replace_env_value(file_path: str, key: str, value: str, print_rewrite: bool 
         print('rewrite')
 
 
-def __show(r: requests.Response, style: int):
+def __show(http_method: str, response: requests.Response, style: HttpStyle):
   match style:
-    case 0:
-      print(f'status: {r.status_code}')
-      print_json(json.dumps(dict(r.headers)))
+    case HttpStyle.with_header:
+      print(f'{response.status_code}: {http_method} {response.url}\n')
+      print_json(json.dumps(dict(response.headers)))
 
       print('\n\n')
-      print_json(r.text)
+      print_json(response.text)
 
-    case 1:
-      print(f'status: {r.status_code}')
-      print_json(r.text)
+    case HttpStyle.content_only:
+      print(f'{response.status_code}: {http_method} {response.url}\n')
+      print_json(response.text)
 
-    case 2:
-      print_json(r.text)
 
 
 class GrpcClient(Generic[Y]):
