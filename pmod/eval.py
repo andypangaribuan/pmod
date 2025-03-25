@@ -108,8 +108,6 @@ def __show(http_method: str, response: requests.Response, style: HttpStyle):
     case HttpStyle.with_header:
       print(f'{response.status_code}: {http_method} {response.url}\n')
       print_json(json.dumps(dict(response.headers)))
-
-      print('\n\n')
       print_json(response.text)
 
     case HttpStyle.content_only:

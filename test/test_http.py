@@ -21,7 +21,7 @@ header = {
   'Content-Type': 'appplication/json'
 }
 
-code, data = eval.get(url=url, style=style.simple, header=header)
+code, data = eval.get(url=url, style=style.with_header, header=header)
 
 print(code)
 print(data)
