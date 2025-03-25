@@ -18,12 +18,9 @@ from pmod.eval import HttpStyle as style
 
 url = 'https://ifconfig.me'
 header = {
-  'Content-Type': 'appplication/json'
+  'Content-Type': 'application/json'
 }
 
-code, data = eval.get(url=url, style=style.with_header, header=header)
-
-print(code)
-print(data)
+_, _ = eval.get(url=url, style=style.with_header, header=header)
 
 # %%
