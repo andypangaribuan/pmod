@@ -8,7 +8,6 @@ licenses restricting copying, distribution and decompilation.
 All Rights Reserved.
 '''
 
-
 import psycopg2
 
 

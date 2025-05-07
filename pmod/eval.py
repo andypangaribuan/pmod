@@ -8,7 +8,6 @@ licenses restricting copying, distribution and decompilation.
 All Rights Reserved.
 '''
 
-
 import json
 import rich
 import requests
