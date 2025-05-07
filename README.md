@@ -1,26 +1,29 @@
 # pmod
 
-**Python Extended Module**
+Python Extended Module
 
 Focus on simplicity, speed and safety.
 
 ## Use
 
 ```sh
-pip install git+https://github.com/andypangaribuan/pmod@v0.0.18
+pip install git+https://github.com/andypangaribuan/pmod@v0.0.19
 ```
 
 or using requirements.txt
+
 ```text
-pmod @ git+https://github.com/andypangaribuan/pmod@v0.0.18
+pmod @ git+https://github.com/andypangaribuan/pmod@v0.0.19
 ```
 
 ## When error occurs
+
 ```sh
-$ pip install psycopg2-binary
+pip install psycopg2-binary
 ```
 
 ## Debug
+
 ```sh
 On VSCode > Python: Select Interpreter
 
@@ -47,7 +50,7 @@ If you fixed a bug or implemented a feature, please send a [`pull request`](http
 
 MIT License
 
-Copyright (c) 2024 Andy Pangaribuan
+Copyright (c) 2025 Andy Pangaribuan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
