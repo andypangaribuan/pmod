@@ -24,6 +24,7 @@ class ScriptServerConf:
 
 
 class ScriptServerEnv:
+    name                            : str       = None
     hosting_type                    : str       = None  # types: gcp
     deployment_type                 : str       = None  # types: k8s
     image_registry                  : str       = None  # types: gcp-artifact-registry

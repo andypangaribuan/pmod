@@ -7,13 +7,13 @@ Focus on simplicity, speed and safety.
 ## Use
 
 ```sh
-pip install git+https://github.com/andypangaribuan/pmod@v0.0.19
+pip install git+https://github.com/andypangaribuan/pmod@v0.0.20
 ```
 
 or using requirements.txt
 
 ```text
-pmod @ git+https://github.com/andypangaribuan/pmod@v0.0.19
+pmod @ git+https://github.com/andypangaribuan/pmod@v0.0.20
 ```
 
 ## When error occurs
