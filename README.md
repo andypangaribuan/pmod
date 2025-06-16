@@ -7,13 +7,13 @@ Focus on simplicity, speed and safety.
 ## Use
 
 ```sh
-pip install git+https://github.com/andypangaribuan/pmod@v0.0.20
+pip install git+https://github.com/andypangaribuan/pmod@v0.0.21
 ```
 
 or using requirements.txt
 
 ```text
-pmod @ git+https://github.com/andypangaribuan/pmod@v0.0.20
+pmod @ git+https://github.com/andypangaribuan/pmod@v0.0.21
 ```
 
 ## When error occurs
@@ -46,9 +46,7 @@ Feel free to contribute to this project.
 If you find a bug or want a feature, but don't know how to fix/implement it, please fill an [`issue`](https://github.com/andypangaribuan/pmod/issues).  
 If you fixed a bug or implemented a feature, please send a [`pull request`](https://github.com/andypangaribuan/pmod/pulls).
 
-## License
-
-MIT License
+## MIT License
 
 Copyright (c) 2025 Andy Pangaribuan
 

@@ -15,7 +15,15 @@ class DBX:
     __conn: dict = {}
     __conn_tz: str | None = None
 
-    def __init__(self, name: str, host: str, port: str, usr: str, pwd: str, tz: str):
+    def __init__(self, name: str = None, host: str = None, port: str = None, usr: str = None, pwd: str = None, tz: str = None, kv: dict = None, prefix: str = None):
+        if kv is not None and prefix is not None:
+            name = kv[f'{prefix}_NAME']
+            host = kv[f'{prefix}_HOST']
+            port = kv[f'{prefix}_PORT']
+            usr  = kv[f'{prefix}_USER']
+            pwd  = kv[f'{prefix}_PASS']
+            tz   = kv[f'{prefix}_TZ']
+
         self.__conn_tz = tz
         self.__conn = {
             'database': name,
