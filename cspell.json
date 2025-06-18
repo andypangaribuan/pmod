@@ -9,5 +9,23 @@
       "scope": ["workspace"]
     }
   ],
-  "dictionaries": ["project"]
+  "dictionaries": ["project"],
+  "words": ["andypangaribuan", "pangaribuan", "decompilation", "taskfile"],
+  "ignorePaths": [
+    "*.mod",
+    "*.sum",
+    "*.md",
+    "*.taskfile",
+    "*.sh",
+    "*.toml",
+    "LICENSE",
+    ".gitignore",
+    "test/**",
+    "res/**",
+    "grc/**",
+    "http-client/**",
+    ".vscode/**",
+
+    "requirements.txt"
+  ]
 }

@@ -476,7 +476,7 @@ class ScriptServerUtil:
                     self.remove_current_line(delete_lines)
                     delete_lines = 0
 
-                msg = f'🔴 doesn\'t have any pod, ouput: "{out}"'
+                msg = f'🔴 doesn\'t have any pod, output: "{out}"'
                 msg = msg.strip()
                 delete_lines = len(msg.split('\n'))
                 print(msg)

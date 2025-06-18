@@ -11,6 +11,7 @@ All Rights Reserved.
 import json
 import rich
 import requests
+import jsonpickle
 import sys
 from enum import Enum
 from pygments import highlight
@@ -101,6 +102,22 @@ def print_json(val: str):
             rich.print(val)
 
 
+def print_object(obj, removeKeysStartingWith: str | None = None):
+    try:
+        json_string = jsonpickle.encode(obj, unpicklable=False)
+        json_object = json.loads(json_string)
+        if removeKeysStartingWith is not None:
+            json_object = __remove_keys_starting_with(json_object, removeKeysStartingWith)
+
+        json_str = json.dumps(json_object, indent=2, sort_keys=True)
+        print(highlight(json_str, get_lexer_by_name("make"), TerminalFormatter()))
+    except Exception as _:
+        try:
+            rich.print_json(obj)
+        except Exception as _:
+            rich.print(obj)
+
+
 def print_make(val: str):
     print(highlight(val, get_lexer_by_name("make"), TerminalFormatter()))
 
@@ -115,6 +132,19 @@ def __show(http_method: str, response: requests.Response, style: HttpStyle):
         case HttpStyle.content_only:
             print(f'{response.status_code}: {http_method} {response.url}\n')
             print_json(response.text)
+
+
+def __remove_keys_starting_with(data, prefix):
+    if isinstance(data, dict):
+        keys_to_remove = [key for key in data if key.startswith(prefix)]
+        for key in keys_to_remove:
+            del data[key]
+        for value in data.values():
+            __remove_keys_starting_with(value, prefix)
+    elif isinstance(data, list):
+        for item in data:
+            __remove_keys_starting_with(item, prefix)
+    return data
 
 
 class GrpcClient(Generic[Y]):
