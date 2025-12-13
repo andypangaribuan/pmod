@@ -10,14 +10,40 @@
 . ~/.base-taskfile
 
 
+#: start virtual environment
+function start {
+  if [ ! -d ".venv" ]; then
+    python -m venv .venv
+  fi
+
+  if [[ "$(which python)" != "$(pwd)/.venv/bin/python" ]]; then
+    source .venv/bin/activate
+  fi
+
+  pip install -q --upgrade pip
+
+  if [ -f "requirements.txt" ]; then
+    pip install -q -r ./requirements.txt
+  fi
+
+  echo "then set the .venv on your vscode"
+  echo "cmd + shift + p"
+  echo ">Python: Select Interpreter"
+  echo "then select the ./.venv/bin/python"
+}
+
+
+#: stop virtual environment
+function stop {
+  if [[ "$(which python)" == "$(pwd)/.venv/bin/python" ]]; then
+    deactivate
+  fi
+}
+
+
 #: run cspell to check the project words
 function spell {
-  img=ghcr.io/streetsidesoftware/cspell:9.0.1
-  docker run --rm \
-    --platform linux/amd64 \
-    -v $PWD:/workdir \
-    $img "**" \
-    --quiet
+  spell-py
 }
 
 

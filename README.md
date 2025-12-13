@@ -1,19 +1,17 @@
 # pmod
 
-Python Extended Module
-
-Focus on simplicity, speed and safety.
+Python Extended Module. Focus on simplicity, speed and safety.
 
 ## Use
 
 ```sh
-pip install git+https://github.com/andypangaribuan/pmod@v0.0.23
+pip install git+https://github.com/andypangaribuan/pmod@v0.0.24
 ```
 
 or using requirements.txt
 
-```text
-pmod @ git+https://github.com/andypangaribuan/pmod@v0.0.23
+```sh
+pmod @ git+https://github.com/andypangaribuan/pmod@v0.0.24
 ```
 
 ## When error occurs
@@ -34,6 +32,16 @@ pip install -r ./requirements.txt
 printf "%s %s\n" "ipykernel :" "$(pip show ipykernel | grep Version | sed 's/Version: //g')"
 pip install 'ipykernel==6.29.5' --force-reinstall
 ```
+
+## Dev Container
+
+- Start the Dev Container
+
+> Open the dev container project on new vscode. Then open Command Palette (cmd+shift+p), choose: >Dev Containers: Reopen in Container.
+
+- Stop the Dev Container
+
+> From docker compose project (dev container), execute command: docker compose down.
 
 ## Versioning
 

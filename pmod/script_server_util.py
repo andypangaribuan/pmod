@@ -30,7 +30,7 @@ class ScriptServerUtil:
         else:
             return f' {lastSeparator} '.join(items)
 
-    def version_parse(self, ver: str) -> tuple[Version, bool]:
+    def version_parse(self, ver: str) -> tuple[Version | None, bool]:
         try:
             v = Version(ver)
             return v, True
@@ -39,7 +39,7 @@ class ScriptServerUtil:
 
     def choose(self, message: str, items: list[str]) -> str:
         print(f'{message} ({self.join_words(items, lastSeparator="or")})')
-        selected: str = None
+        selected: str | None = None
         while selected is None:
             answer = input()
             if answer in items:
@@ -56,7 +56,7 @@ class ScriptServerUtil:
         for _ in range(size):
             print('\033[1A' + '\033[K', end='')
 
-    def dict_value(self, dictionary, keys: list[str]):
+    def dict_value(self, dictionary, keys: list[str]) -> Optional[Any]:
         value = None
         nested_dict = dictionary
 
@@ -69,7 +69,7 @@ class ScriptServerUtil:
 
         return value
 
-    def get_version_text(self, ver: Version) -> str:
+    def get_version_text(self, ver: Version | None) -> str:
         if ver is None:
             return ''
         if ver.pre is not None:
@@ -77,6 +77,9 @@ class ScriptServerUtil:
         return ver.public
 
     def gitlab_diff_branch(self, conf: ScriptServerConf, branch_from: str, branch_to: str) -> tuple[Optional[int], Optional[str]]:
+        if conf.git_pass is None:
+            return None, 'git_pass is required'
+
         url: str = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/compare?from={branch_from}&to={branch_to}&straight=true'
         headers: dict[str, str] = {'PRIVATE-TOKEN': conf.git_pass}
         res = requests.get(url, headers=headers)
@@ -84,6 +87,9 @@ class ScriptServerUtil:
             return None, f'http code: {res.status_code}'
 
         diffs = self.dict_value(res.json(), ['diffs'])
+        if diffs is None:
+            return None, 'diffs not found'
+
         return len(diffs), None
 
     def gitlab_create_mr(self, conf: ScriptServerConf, selected_env: ScriptServerEnv):
@@ -97,7 +103,10 @@ class ScriptServerUtil:
         print(f'url: {url}')
         exit()
 
-    def gitlab_find_tag(self, conf: ScriptServerConf, tag_name: str) -> tuple[bool, str]:
+    def gitlab_find_tag(self, conf: ScriptServerConf, tag_name: str) -> tuple[bool, str | None]:
+        if conf.git_pass is None:
+            return False, 'git_pass is required'
+
         url: str = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/tags/{tag_name}'
         headers: dict[str, str] = {'PRIVATE-TOKEN': conf.git_pass}
         res = requests.get(url, headers=headers)
@@ -117,6 +126,9 @@ class ScriptServerUtil:
         return False, f'http code: {res.status_code}\nresponse: {jons}'
 
     def gitlab_delete_tag(self, conf: ScriptServerConf, tag_name: str) -> Optional[str]:
+        if conf.git_pass is None:
+            return 'git_pass is required'
+
         url = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/tags/{tag_name}'
         headers: dict[str, str] = {'PRIVATE-TOKEN': conf.git_pass}
         res = requests.delete(url, headers=headers)
@@ -132,6 +144,9 @@ class ScriptServerUtil:
         return None
 
     def gitlab_create_tag(self, conf: ScriptServerConf, tag_name: str, branch: str) -> Optional[str]:
+        if conf.git_pass is None:
+            return 'git_pass is required'
+
         url = f'https://gitlab.com/api/v4/projects/{conf.git_id}/repository/tags?tag_name={tag_name}&ref={branch}'
         headers: dict[str, str] = {'PRIVATE-TOKEN': conf.git_pass}
         res = requests.post(url, headers=headers)
@@ -162,7 +177,7 @@ class ScriptServerUtil:
         new_version = '.'.join(ls)
         return Version(f'{new_version}.{pre_name}{pre_ver + 1}')
 
-    def fetch_latest_image_version(self, env: ScriptServerEnv, env_name: str) -> tuple[Version, str]:
+    def fetch_latest_image_version(self, env: ScriptServerEnv, env_name: str) -> tuple[Version | None, str | None]:
         if env.image_registry not in ['gcp-artifact-registry']:
             return None, 'unhandled logic'
 
@@ -182,7 +197,7 @@ class ScriptServerUtil:
                 return None, f'TAG not found in {out}'
 
             lines = out.splitlines()
-            image_version: Version = None
+            image_version: Version | None = None
 
             for line in lines:
                 try:
@@ -198,6 +213,8 @@ class ScriptServerUtil:
 
             print(f'{image_version}')
             return image_version, None
+
+        return None, 'image version not found'
 
     def git_clone(self, conf: ScriptServerConf, tag_name: str, repository_type: str) -> Optional[str]:
         if repository_type not in ['gitlab.com']:
@@ -250,10 +267,49 @@ class ScriptServerUtil:
 
         return None
 
-    def build_image(self, conf: ScriptServerConf, selected_env: ScriptServerEnv, ver: Version, add_build_arg: str) -> Optional[str]:
+    def docker_resolve(self) -> Optional[str]:
+        cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        cmd = cmd % 'docker buildx version'
+        out, err_message = self.sh_get(cmd)
+        if err_message != "":
+            return err_message
+
+        if out.strip() == "":
+            return 'docker buildx is not available, please install docker buildx'
+
+        if not out.strip().startswith('github.com/docker/buildx'):
+            return 'docker buildx is not available, please install docker buildx'
+
+        cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        cmd = cmd % 'docker buildx inspect'
+        out, err_message = self.sh_get(cmd)
+        if err_message != "":
+            return err_message
+
+        if out.strip() == "":
+            return 'docker buildx inspect failed, please check your docker buildx installation'
+
+        lines = out.splitlines()
+        if len(lines) == 0 or not lines[0].startswith('Name:'):
+            return 'docker buildx inspect returned empty output, please check your docker buildx installation'
+
+        builder_name = lines[0].replace("Name:", "").strip()
+        if builder_name == 'default':
+            cmd = 'chroot /hostfs /bin/bash -c "%s"'
+            cmd = cmd % 'docker buildx create --name script-server-builder --use'
+            out, err_message = self.sh_get(cmd)
+            if err_message != "":
+                return err_message
+
+        return None
+
+    def build_image(self, conf: ScriptServerConf, selected_env: ScriptServerEnv, ver: Version, add_build_arg: str | None) -> Optional[str]:
         err_message = self.resolve_nameserver()
         if err_message is not None:
             return err_message
+
+        if selected_env.image_name is None:
+            return 'image_name is not set in the selected environment'
 
         version: str = self.get_version_text(ver)
 
@@ -280,8 +336,10 @@ class ScriptServerUtil:
                 return f'os error code {err_code}'
 
         print('\n→ build image on local device')
-        cmd_build_1 = 'docker build --no-cache -f %s --build-arg APP_VERSION=%s --build-arg TZ=%s -t %s .'
-        cmd_build_2 = 'docker build --no-cache -f %s --build-arg APP_VERSION=%s --build-arg TZ=%s %s -t %s .'
+        # cmd_build_1 = 'docker build --no-cache -f %s --build-arg APP_VERSION=%s --build-arg TZ=%s -t %s .'
+        # cmd_build_2 = 'docker build --no-cache -f %s --build-arg APP_VERSION=%s --build-arg TZ=%s %s -t %s .'
+        cmd_build_1 = 'docker buildx build --no-cache -f %s --build-arg APP_VERSION=%s --build-arg TZ=%s -t %s --load .'
+        cmd_build_2 = 'docker buildx build --no-cache -f %s --build-arg APP_VERSION=%s --build-arg TZ=%s %s -t %s --load .'
         cmd = 'chroot /hostfs /bin/bash -c "%s"'
         cmd = cmd % 'cd %s; %s'
 
@@ -304,6 +362,48 @@ class ScriptServerUtil:
         cmd = 'chroot /hostfs /bin/bash -c "%s"'
         cmd = cmd % 'docker exec -it %s docker push %s:%s'
         cmd = cmd % (selected_env.container_cloud_sdk, selected_env.image_name, version)
+        err_code = os.system(cmd)
+        if err_code != 0:
+            return f'os error code {err_code}'
+        return None
+
+    def get_file_path_zip_docker_image(self, conf: ScriptServerConf, selected_env: ScriptServerEnv, ver: Version) -> str:
+        if selected_env.image_name is None:
+            return 'image_name is not set in the selected environment'
+
+        version: str = self.get_version_text(ver)
+        zip_file: str = f'{conf.host_build_path}/{selected_env.image_name.replace("/", "_")}_{version}.tar.gz'
+        return zip_file
+
+    def zip_docker_image(self, conf: ScriptServerConf, selected_env: ScriptServerEnv, ver: Version) -> Optional[str]:
+        version: str = self.get_version_text(ver)
+        image: str = f'{selected_env.image_name}:{version}'
+        zip_file: str = self.get_file_path_zip_docker_image(conf, selected_env, ver)
+
+        cmd = 'chroot /hostfs /bin/bash -c "%s"'
+        cmd = cmd % 'docker save %s | gzip > %s'
+        cmd = cmd % (image, zip_file)
+        err_code = os.system(cmd)
+        if err_code != 0:
+            return f'os error code {err_code}'
+        return None
+
+    def push_image_to_vm_and_extract(self, conf: ScriptServerConf, selected_env: ScriptServerEnv, ver: Version) -> Optional[str]:
+        zip_file: str = f'/hostfs{self.get_file_path_zip_docker_image(conf, selected_env, ver)}'
+        cmd = 'scp -o StrictHostKeyChecking=no -i %s %s %s@%s:~/%s'
+        cmd = cmd % (selected_env.vm_ssh_key_path, zip_file, selected_env.vm_username, selected_env.vm_ip_address, os.path.basename(zip_file))
+        err_code = os.system(cmd)
+        if err_code != 0:
+            return f'os error code {err_code}'
+
+        cmd = 'ssh -o StrictHostKeyChecking=no -i %s %s@%s "gunzip -c ~/%s | docker load"'
+        cmd = cmd % (selected_env.vm_ssh_key_path, selected_env.vm_username, selected_env.vm_ip_address, os.path.basename(zip_file))
+        err_code = os.system(cmd)
+        if err_code != 0:
+            return f'os error code {err_code}'
+
+        cmd = 'ssh -o StrictHostKeyChecking=no -i %s %s@%s "rm -rf %s"'
+        cmd = cmd % (selected_env.vm_ssh_key_path, selected_env.vm_username, selected_env.vm_ip_address, os.path.basename(zip_file))
         err_code = os.system(cmd)
         if err_code != 0:
             return f'os error code {err_code}'
@@ -344,7 +444,7 @@ class ScriptServerUtil:
                     try:
                         file.writelines(lines)
                     except Exception:
-                        return f'failed when write the file\nfile: {file_path}\ncontent:\n{"".join(line)}'
+                        return f'failed when write the file\nfile: {file_path}\ncontent:\n{"".join(lines)}'
             except Exception:
                 return f'failed when open to write the file\nfile: {file_path}'
 
@@ -378,6 +478,9 @@ class ScriptServerUtil:
         return None
 
     def deploy_on_gcp_k8s(self, selected_env: ScriptServerEnv, ver: Version) -> Optional[str]:
+        if selected_env.container_cloud_sdk is None:
+            return 'container_cloud_sdk is not set in the selected environment'
+
         image: str = f'{selected_env.image_name}:{self.get_version_text(ver)}'
         cmd_base = 'chroot /hostfs /bin/bash -c "docker exec -it %s"'
         cmd_base = cmd_base % (selected_env.container_cloud_sdk + ' %s')
@@ -388,8 +491,14 @@ class ScriptServerUtil:
             return f'os error code {err_code}'
         return None
 
-    def wait_rolling_update_on_gcp_k8s(self, selected_env: ScriptServerEnv, ver: Version):
-        image_version: str = self.get_version_text(ver)
+    def wait_rolling_update_on_gcp_k8s(self, selected_env: ScriptServerEnv, targetVersion: Version):
+        if selected_env.container_cloud_sdk is None:
+            return 'container_cloud_sdk is not set in the selected environment'
+
+        if selected_env.image_name is None:
+            return 'image_name is not set in the selected environment'
+
+        image_version: str = self.get_version_text(targetVersion)
         delete_lines: int = 0
         do_loop: bool = True
         headers: list[str] = ['POD', 'VERSION', 'PHASE']

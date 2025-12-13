@@ -12,7 +12,7 @@ import psycopg2
 
 
 class DBX:
-    __conn: dict = {}
+    __conn   : dict       = {}
     __conn_tz: str | None = None
 
     def __init__(self, name: str = None, host: str = None, port: str = None, usr: str = None, pwd: str = None, tz: str = None, kv: dict = None, prefix: str = None):
@@ -27,9 +27,9 @@ class DBX:
         self.__conn_tz = tz
         self.__conn = {
             'database': name,
-            'host': host,
-            'port': port,
-            'user': usr,
+            'host'    : host,
+            'port'    : port,
+            'user'    : usr,
             'password': pwd,
         }
 

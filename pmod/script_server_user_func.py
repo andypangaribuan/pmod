@@ -14,14 +14,20 @@ from pmod.script_server_model import ScriptServerConf
 
 
 class ScriptServerUserFunc:
-    __conf: ScriptServerConf = None
-    selected_env_code: str = None
+    __conf: ScriptServerConf | None = None
+    selected_env_code: str | None = None
 
     def __init__(self, conf: ScriptServerConf, selected_env_code: str):
         self.__conf = conf
         self.selected_env_code = selected_env_code
 
     def execute_command(self, command: str) -> Optional[str]:
+        if self.__conf is None:
+            return 'configuration is not set'
+
+        if self.__conf.host_build_path is None:
+            return 'host_build_path is not set in the configuration'
+
         cmd = 'chroot /hostfs /bin/bash -c "%s"'
         cmd = cmd % 'cd %s; %s'
         cmd = cmd % (self.__conf.host_build_path, command)
@@ -31,6 +37,12 @@ class ScriptServerUserFunc:
         return None
 
     def write_file(self, file_path: str, content: str) -> Optional[str]:
+        if self.__conf is None:
+            return 'configuration is not set'
+
+        if self.__conf.host_build_path is None:
+            return 'host_build_path is not set in the configuration'
+
         host_file_path = f'/hostfs{self.__conf.host_build_path}/{file_path}'
 
         try:

@@ -1,0 +1,9 @@
+services:
+  devc:
+    container_name: devc-pmod
+    image: python:3.13.3-bullseye
+    tty: true
+    working_dir: /workspace
+    volumes:
+      - ./pmod:/workspace/pmod:shared
+      - ./requirements.txt:/workspace/requirements.txt:shared

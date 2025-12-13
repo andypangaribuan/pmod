@@ -16,7 +16,6 @@ import sys
 from enum import Enum
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
-# from pygments.lexers.data import JsonLexer
 from pygments.formatters import TerminalFormatter
 from dotenv import dotenv_values
 from typing import cast, TypeVar, Callable, Coroutine, Generic
@@ -29,8 +28,8 @@ Y = TypeVar("Y")
 
 
 class HttpStyle(Enum):
-    hidden = -1
-    with_header = 1
+    hidden       = -1
+    with_header  = 1
     content_only = 2
 
 

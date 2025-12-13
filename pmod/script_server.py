@@ -9,7 +9,7 @@ All Rights Reserved.
 '''
 
 import time
-from typing import Optional
+from typing import Callable, Optional
 from packaging.version import Version
 from pmod.script_server_model import ScriptServerConf, ScriptServerEnv
 from pmod.script_server_util import ScriptServerUtil
@@ -17,24 +17,30 @@ from pmod.script_server_user_func import ScriptServerUserFunc
 
 
 class ScripServer:
-    __util: ScriptServerUtil = ScriptServerUtil()
-    __conf: ScriptServerConf = None
-    __stg_env: ScriptServerEnv = None
-    __rc_env: ScriptServerEnv = None
-    __prod_env: ScriptServerEnv = None
-    __after_clone_func: callable = None
-    __add_build_arg_func: callable = None
-    __repository_type: str = None
-    __selected_env: ScriptServerEnv = None
-    __selected_env_code: str = None
-    __workflow_env_code: str = None
-    __current_image_version: Version = None
-    __below_env_image_version: Version = None
-    __above_env_image_version: Version = None
-    __prefer_next_version: Version = None
-    __user_next_version: Version = None
+    __util                   : ScriptServerUtil                              = ScriptServerUtil()
+    __conf                   : ScriptServerConf | None                       = None
+    __stg_env                : ScriptServerEnv | None                        = None
+    __rc_env                 : ScriptServerEnv | None                        = None
+    __prod_env               : ScriptServerEnv | None                        = None
+    __after_clone_func       : Callable[[ScriptServerUserFunc], None] | None = None
+    __add_build_arg_func     : Callable[[str, str], str] | None              = None
+    __repository_type        : str | None                                    = None
+    __selected_env           : ScriptServerEnv | None                        = None
+    __selected_env_code      : str | None                                    = None
+    __workflow_env_code      : str | None                                    = None
+    __current_image_version  : Version | None                                = None
+    __below_env_image_version: Version | None                                = None
+    __above_env_image_version: Version | None                                = None
+    __prefer_next_version    : Version | None                                = None
+    __user_next_version      : Version | None                                = None
 
-    def __init__(self, conf: ScriptServerConf, stg_env: ScriptServerEnv = None, rc_env: ScriptServerEnv = None, prod_env: ScriptServerEnv = None, after_clone_func: callable = None, add_build_arg_func: callable = None):
+    def __init__(self,
+                 conf: ScriptServerConf,
+                 stg_env: ScriptServerEnv | None = None,
+                 rc_env: ScriptServerEnv | None = None,
+                 prod_env: ScriptServerEnv | None = None,
+                 after_clone_func: Callable[[ScriptServerUserFunc], None] | None = None,
+                 add_build_arg_func: Callable[[str, str], str] | None = None):
         self.__conf = conf
         self.__stg_env = stg_env
         self.__rc_env = rc_env
@@ -56,7 +62,9 @@ class ScripServer:
         self.__perform_git_clone()
         self.__execute_commands_before_image_build()
         self.__execute_after_clone_func()
+        self.__perform_docker_resolve()
         self.__perform_build_image()
+        self.__zip_docker_image()
         self.__perform_image_push()
         self.__delete_existing_image()
         self.__delete_build_directory()
@@ -66,6 +74,14 @@ class ScripServer:
         self.__success_message()
 
     def __validate(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
+        if self.__conf.git_repo is None:
+            print('\n🔴 git_repo is not set in the configuration')
+            exit()
+
         if len(self.__conf.git_repo) > 10 and self.__conf.git_repo[:10] == 'gitlab.com':
             self.__repository_type = 'gitlab.com'
         else:
@@ -93,29 +109,29 @@ class ScripServer:
             exit()
 
         # VALIDATE HOSTING TYPES
-        if self.__stg_env is not None and self.__stg_env.hosting_type not in ['gcp']:
-            print('\n🔴 [stg-env] hosting type support: gcp')
+        if self.__stg_env is not None and self.__stg_env.hosting_type not in ['gcp', 'vm']:
+            print('\n🔴 [stg-env] hosting type support: gcp, vm')
             exit()
 
-        if self.__rc_env is not None and self.__rc_env.hosting_type not in ['gcp']:
-            print('\n🔴 [rc-env] hosting type support: gcp')
+        if self.__rc_env is not None and self.__rc_env.hosting_type not in ['gcp', 'vm']:
+            print('\n🔴 [rc-env] hosting type support: gcp, vm')
             exit()
 
-        if self.__prod_env is not None and self.__prod_env.hosting_type not in ['gcp']:
-            print('\n🔴 [prod-env] hosting type support: gcp')
+        if self.__prod_env is not None and self.__prod_env.hosting_type not in ['gcp', 'vm']:
+            print('\n🔴 [prod-env] hosting type support: gcp, vm')
             exit()
 
         # VALIDATE DEPLOYMENT TYPES
-        if self.__stg_env is not None and self.__stg_env.deployment_type not in ['k8s']:
-            print('\n🔴 [stg-env] deployment type support: k8s')
+        if self.__stg_env is not None and self.__stg_env.deployment_type not in ['k8s', 'docker']:
+            print('\n🔴 [stg-env] deployment type support: k8s, docker')
             exit()
 
-        if self.__rc_env is not None and self.__rc_env.deployment_type not in ['k8s']:
-            print('\n🔴 [rc-env] deployment type support: k8s')
+        if self.__rc_env is not None and self.__rc_env.deployment_type not in ['k8s', 'docker']:
+            print('\n🔴 [rc-env] deployment type support: k8s, docker')
             exit()
 
-        if self.__prod_env is not None and self.__prod_env.deployment_type not in ['k8s']:
-            print('\n🔴 [prod-env] deployment type support: k8s')
+        if self.__prod_env is not None and self.__prod_env.deployment_type not in ['k8s', 'docker']:
+            print('\n🔴 [prod-env] deployment type support: k8s, docker')
             exit()
 
         # VALIDATE IMAGE REGISTRY TYPES
@@ -173,6 +189,10 @@ class ScripServer:
                 exit()
 
     def __select_env(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
         if self.__conf.terminate_when == 'select-env':
             exit()
 
@@ -199,14 +219,38 @@ class ScripServer:
                 self.__selected_env = self.__prod_env
 
     def __validate_selected(self):
-        if self.__conf.terminate_when == 'validate-selected':
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
+        if self.__selected_env is None:
+            print('\n🔴 selected env is not set')
             exit()
 
         if self.__selected_env.container_cloud_sdk is None:
             print('\n🔴 empty container_cloud_sdk')
             exit()
 
+        if self.__conf.terminate_when == 'validate-selected':
+            exit()
+
     def __git_diff_branch(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
+        if self.__selected_env is None:
+            print('\n🔴 selected env is not set')
+            exit()
+
+        if self.__selected_env.git_prev_branch is None:
+            print('\n🔴 selected env git_prev_branch is not set')
+            exit()
+
+        if self.__selected_env.git_branch is None:
+            print('\n🔴 selected env git_branch is not set')
+            exit()
+
         if self.__conf.terminate_when == 'git-diff-branch':
             exit()
 
@@ -227,10 +271,14 @@ class ScripServer:
                 self.__util.gitlab_create_mr(self.__conf, self.__selected_env)
 
     def __get_current_image_version(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
         if self.__conf.terminate_when == 'get-current-image-version':
             exit()
 
-        current: list = None
+        current: list | None = None
 
         match self.__selected_env_code:
             case 'stg':
@@ -240,8 +288,12 @@ class ScripServer:
             case 'prod':
                 current = [self.__prod_env, 'prod']
 
-        err: str = None
-        current_version: Version = None
+        if current is None:
+            print('\n🔴 cannot find current env for fetching image version')
+            exit()
+
+        err: str | None = None
+        current_version: Version | None = None
 
         current_version, err = self.__util.fetch_latest_image_version(current[0], current[1])
         if err is not None:
@@ -252,11 +304,15 @@ class ScripServer:
         self.__current_image_version = current_version
 
     def __get_below_or_above_image_version(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
         if self.__conf.terminate_when == 'get-below-or-above-image-version':
             exit()
 
-        below: list = None
-        above: list = None
+        below: list | None = None
+        above: list | None = None
 
         match self.__workflow_env_code:
             case 'srp':
@@ -286,9 +342,9 @@ class ScripServer:
                     case 'rc':
                         below = [self.__stg_env, 'stg']
 
-        err: str = None
-        below_env_image_version: Version = None
-        above_env_image_version: Version = None
+        err: str | None = None
+        below_env_image_version: Version | None = None
+        above_env_image_version: Version | None = None
 
         if below is not None:
             below_env_image_version, err = self.__util.fetch_latest_image_version(below[0], below[1])
@@ -307,6 +363,10 @@ class ScripServer:
         self.__above_env_image_version = above_env_image_version
 
     def __diff_branch_with_tag_version(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
         if self.__conf.terminate_when == 'diff-branch-with-tag-version':
             exit()
 
@@ -316,6 +376,14 @@ class ScripServer:
 
         if self.__current_image_version is None:
             return
+
+        if self.__selected_env is None:
+            print('\n🔴 selected env is not set')
+            exit()
+
+        if self.__selected_env.git_branch is None:
+            print('\n🔴 selected env git_branch is not set')
+            exit()
 
         if self.__repository_type == 'gitlab.com':
             git_tag: str = f'v{self.__util.get_version_text(self.__current_image_version)}'
@@ -335,6 +403,10 @@ class ScripServer:
             print(f'have {diffs} diff, good to go')
 
     def __get_user_next_version(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
         if self.__conf.terminate_when == 'get-user-next-version':
             exit()
 
@@ -372,7 +444,7 @@ class ScripServer:
                     return
 
             case 'sr: rc' | 'srp: rc':
-                if self.__current_image_version is None and self.__below_env_image_version is None:
+                if self.__below_env_image_version is None:
                     print('\n🔴 below version not found, expected have stg image version')
                     exit()
 
@@ -380,7 +452,7 @@ class ScripServer:
                     self.__current_image_version is None or
                     self.__below_env_image_version.major > self.__current_image_version.major or  # X._._._
                     self.__below_env_image_version.minor > self.__current_image_version.minor or  # O.X._._
-                    self.__below_env_image_version.micro > self.__current_image_version.micro    # O.O.X._
+                    self.__below_env_image_version.micro > self.__current_image_version.micro     # O.O.X._
                 ):
                     self.__prefer_next_version = Version(f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}.rc1')
                     return
@@ -389,7 +461,7 @@ class ScripServer:
                 return
 
             case 'sp: prod' | 'srp: prod':
-                if self.__current_image_version is None and self.__below_env_image_version is None:
+                if self.__below_env_image_version is None:
                     if self.__workflow_env_code == 'sp':
                         print('\n🔴 below version not found, expected have stg image version')
                     if self.__workflow_env_code == 'srp':
@@ -413,12 +485,23 @@ class ScripServer:
             exit()
 
     def __ask_user_next_version(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
         if self.__conf.terminate_when == 'ask-user-next-version':
+            exit()
+
+        if self.__prefer_next_version is None:
+            print('\n🔴 preferable next version is not set')
             exit()
 
         print(f'\n❖ preferable next version: {self.__util.get_version_text(self.__prefer_next_version)}')
 
         def validate_major_minor_micro(input_version: Version) -> Optional[str]:
+            if self.__prefer_next_version is None:
+                return None
+
             if input_version.major < self.__prefer_next_version.major:
                 return f'🔴 major version "{input_version.major}" cannot less than prefer next version "{self.__prefer_next_version.major}"'
 
@@ -437,12 +520,18 @@ class ScripServer:
             return None
 
         while self.__user_next_version is None:
-            err_message: str = None
+            err_message: str | None = None
             input_value = input('[ask] please input next version: ')
             input_value = input_value.strip()
             input_version, valid = self.__util.version_parse(input_value)
 
             if not valid:
+                print('🔴 invalid version format')
+                time.sleep(3)
+                self.__util.remove_current_line(2)
+                continue
+
+            if input_version is None:
                 print('🔴 invalid version format')
                 time.sleep(3)
                 self.__util.remove_current_line(2)
@@ -469,10 +558,10 @@ class ScripServer:
                     if err_message is None:
                         err_message = validate_major_minor_micro(input_version)
 
-                    if err_message is None and input_version.pre[0] != 'rc':
+                    if err_message is None and input_version.pre is not None and input_version.pre[0] != 'rc':
                         err_message = '🔴 mush have "rc" part'
 
-                    if err_message is None and input_version.pre[1] < self.__prefer_next_version.pre[1]:
+                    if err_message is None and input_version.pre is not None and self.__prefer_next_version.pre is not None and input_version.pre[1] < self.__prefer_next_version.pre[1]:
                         err_message = f'🔴 rc version "{input_version.pre[1]}" cannot less than prefer next version "{self.__prefer_next_version.pre[1]}"'
 
                 case 'prod':
@@ -510,6 +599,22 @@ class ScripServer:
                 self.__user_next_version = input_version
 
     def __create_git_tag(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
+        if self.__selected_env is None:
+            print('\n🔴 selected env is not set')
+            exit()
+
+        if self.__selected_env.git_branch is None:
+            print('\n🔴 selected env git branch is not set')
+            exit()
+
+        if self.__user_next_version is None:
+            print('\n🔴 user next version is not set')
+            exit()
+
         if self.__conf.terminate_when == 'create-git-tag':
             exit()
 
@@ -545,6 +650,18 @@ class ScripServer:
                 exit()
 
     def __perform_git_clone(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
+        if self.__user_next_version is None:
+            print('\n🔴 user next version is not set')
+            exit()
+
+        if self.__repository_type is None:
+            print('\n🔴 repository type is not set')
+            exit()
+
         if self.__conf.terminate_when == 'perform-git-clone':
             exit()
 
@@ -558,6 +675,14 @@ class ScripServer:
             exit()
 
     def __execute_commands_before_image_build(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
+        if self.__selected_env is None:
+            print('\n🔴 selected env is not set')
+            exit()
+
         if self.__conf.terminate_when == 'execute-commands-before-image-build':
             exit()
 
@@ -571,6 +696,14 @@ class ScripServer:
             exit()
 
     def __execute_after_clone_func(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
+        if self.__selected_env_code is None:
+            print('\n🔴 selected env code is not set')
+            exit()
+
         if self.__conf.terminate_when == 'execute-after-clone-func':
             exit()
 
@@ -581,31 +714,119 @@ class ScripServer:
         user_func = ScriptServerUserFunc(self.__conf, self.__selected_env_code)
         self.__after_clone_func(user_func)
 
-    def __perform_build_image(self):
+    def __perform_docker_resolve(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
         if self.__conf.terminate_when == 'perform-build-image':
             exit()
 
-        add_build_arg: str = None
+        print('\n→ perform docker resolve')
+        err_message = self.__util.docker_resolve()
+        if err_message is not None:
+            print(f'\n🔴 error: {err_message}')
+            exit()
+
+    def __perform_build_image(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
+        if self.__selected_env is None:
+            print('\n🔴 selected env is not set')
+            exit()
+
+        if self.__selected_env_code is None:
+            print('\n🔴 selected env code is not set')
+            exit()
+
+        if self.__user_next_version is None:
+            print('\n🔴 user next version is not set')
+            exit()
+
+        if self.__conf.terminate_when == 'perform-build-image':
+            exit()
+
+        add_build_arg: str | None = None
         if self.__add_build_arg_func is not None:
             add_build_arg = self.__add_build_arg_func(self.__selected_env_code, self.__util.get_version_text(self.__user_next_version))
+
+        print('\n→ delete existing image (if exists)')
+        self.__util.delete_image(self.__selected_env, self.__user_next_version)
 
         err_message = self.__util.build_image(self.__conf, self.__selected_env, self.__user_next_version, add_build_arg)
         if err_message is not None:
             print(f'\n🔴 error: {err_message}')
             exit()
 
+    def __zip_docker_image(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
+        if self.__selected_env is None:
+            print('\n🔴 selected env is not set')
+            exit()
+
+        if self.__user_next_version is None:
+            print('\n🔴 user next version is not set')
+            exit()
+
+        if self.__conf.terminate_when == 'zip-docker-image':
+            exit()
+
+        if self.__selected_env.hosting_type == 'vm' and self.__selected_env.deployment_type == 'docker':
+            print('\n→ perform zip docker image')
+            err_message = self.__util.zip_docker_image(self.__conf, self.__selected_env, self.__user_next_version)
+            if err_message is not None:
+                print(f'\n🔴 error: {err_message}')
+                exit()
+
     def __perform_image_push(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
+        if self.__selected_env is None:
+            print('\n🔴 selected env is not set')
+            exit()
+
+        if self.__user_next_version is None:
+            print('\n🔴 user next version is not set')
+            exit()
+
         if self.__conf.terminate_when == 'perform-image-push':
             exit()
 
-        print('\n→ perform image push')
-        err_message = self.__util.push_image(self.__selected_env, self.__user_next_version)
-        if err_message is not None:
-            print(f'\n🔴 error: {err_message}')
-            exit()
+        if self.__selected_env.hosting_type == 'gcp' and self.__selected_env.deployment_type == 'k8s':
+            print('\n→ perform image push')
+            err_message = self.__util.push_image(self.__selected_env, self.__user_next_version)
+            if err_message is not None:
+                print(f'\n🔴 error: {err_message}')
+                exit()
+
+        if self.__selected_env.hosting_type == 'vm' and self.__selected_env.deployment_type == 'docker':
+            print('\n→ perform image push, extract and load on remote server')
+            err_message = self.__util.push_image_to_vm_and_extract(self.__conf, self.__selected_env, self.__user_next_version)
+            if err_message is not None:
+                print(f'\n🔴 error: {err_message}')
+                exit()
 
     def __delete_existing_image(self):
-        if self.__conf.terminate_when == 'delete existing image':
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
+        if self.__selected_env is None:
+            print('\n🔴 selected env is not set')
+            exit()
+
+        if self.__user_next_version is None:
+            print('\n🔴 user next version is not set')
+            exit()
+
+        if self.__conf.terminate_when == 'delete-existing-image':
             exit()
 
         print('\n→ delete existing image')
@@ -615,7 +836,11 @@ class ScripServer:
             exit()
 
     def __delete_build_directory(self):
-        if self.__conf.terminate_when == 'delete build directory':
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
+        if self.__conf.terminate_when == 'delete-build-directory':
             exit()
 
         print('\n→ delete build directory')
@@ -625,6 +850,10 @@ class ScripServer:
             exit()
 
     def __perform_docker_prune(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
         if self.__conf.terminate_when == 'perform-docker-prune':
             exit()
 
@@ -636,7 +865,15 @@ class ScripServer:
                 exit()
 
     def __perform_deployment(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
         if self.__conf.terminate_when == 'perform-deployment':
+            exit()
+
+        if self.__selected_env is None:
+            print('\n🔴 selected env is not set')
             exit()
 
         if self.__current_image_version is None:
@@ -647,9 +884,17 @@ class ScripServer:
             print('🟢 finish')
             exit()
 
-        if self.__selected_env.hosting_type == 'gcp' and self.__selected_env.deployment_type == 'k8s':
+        if self.__selected_env.hosting_type == 'gcp' and self.__selected_env.deployment_type == 'k8s' and self.__user_next_version is not None:
             print('\n→ perform deployment on gcp kubernetes')
             err_message = self.__util.deploy_on_gcp_k8s(self.__selected_env, self.__user_next_version)
+            if err_message is not None:
+                print(f'\n🔴 error: {err_message}')
+                exit()
+            return
+
+        if self.__selected_env.hosting_type == 'vm' and self.__selected_env.deployment_type == 'docker':
+            print('\n→ perform deployment on vm docker')
+            err_message = self.__util.deploy_on_vm_docker(self.__conf, self.__selected_env, self.__user_next_version)
             if err_message is not None:
                 print(f'\n🔴 error: {err_message}')
                 exit()
@@ -659,10 +904,14 @@ class ScripServer:
         exit()
 
     def __wait_rolling_update(self):
+        if self.__conf is None:
+            print('\n🔴 configuration is not set')
+            exit()
+
         if self.__conf.terminate_when == 'wait-rolling-update':
             exit()
 
-        if self.__selected_env.hosting_type == 'gcp' and self.__selected_env.deployment_type == 'k8s':
+        if self.__selected_env is not None and self.__selected_env.hosting_type == 'gcp' and self.__selected_env.deployment_type == 'k8s' and self.__user_next_version is not None:
             print('\n→ wait for rolling update')
             self.__util.wait_rolling_update_on_gcp_k8s(self.__selected_env, self.__user_next_version)
             return
