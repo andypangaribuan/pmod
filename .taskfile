@@ -1,43 +1,80 @@
 #!/bin/bash
 
-# Copyright (c) 2025.
+# Copyright (c) 2026.
 # Created by Andy Pangaribuan. All Rights Reserved.
 # This product is protected by copyright and distributed under
 # licenses restricting copying, distribution and decompilation.
 
-# invisible character: https://www.compart.com/en/unicode/U+2800
 
-. ~/.base-taskfile
+# PYENV_PYTHON_VERSION=3.13.3
+PYENV_PYTHON_VERSION=3.13.11
+PYENV_PYTHON_BIN="$HOME/.pyenv/versions/$PYENV_PYTHON_VERSION/bin/python"
+
+VENV_DIR=".venv"
+PYTHON_BIN="$(pwd)/$VENV_DIR/bin/python"
+PIP_BIN="$(pwd)/$VENV_DIR/bin/pip"
 
 
-#: start virtual environment
-function start {
-  if [ ! -d ".venv" ]; then
-    python -m venv .venv
+#: run python virtual env #: opt: --fresh (delete .venv directory first), --no-install (without installing the dependencies requirements.txt)
+function run {
+  if [[ $1 == "--fresh" || $2 == "--fresh" ]]; then
+    rm -rf "$VENV_DIR"
+	fi
+
+  ensure_venv
+
+  if [[ $1 != "--no-install" && $2 != "--no-install" ]]; then
+    install_deps
   fi
 
-  if [[ "$(which python)" != "$(pwd)/.venv/bin/python" ]]; then
-    source .venv/bin/activate
+  echo "▶ Version: $("$PYTHON_BIN" --version)"
+
+  if [ -n "$VIRTUAL_ENV" ]; then
+    echo "▶ You already running on python virtual environment..."
+  else
+    printf "source .venv/bin/activate" | pbcopy
+    echo "▶ Activate using: source .venv/bin/activate"
+    echo "  or just paste then enter"
   fi
 
-  pip install -q --upgrade pip
-
-  if [ -f "requirements.txt" ]; then
-    pip install -q -r ./requirements.txt
-  fi
-
-  echo "then set the .venv on your vscode"
-  echo "cmd + shift + p"
-  echo ">Python: Select Interpreter"
-  echo "then select the ./.venv/bin/python"
+  echo -e "\n"
+  echo "▶ Activate the virtualenv on your vscode"
+  echo "  cmd + shift + p "
+  echo "  >Python: Select Interpreter"
+  echo "  then select the ./.venv/bin/python"
 }
 
 
-#: stop virtual environment
+#: stop python virtual env
 function stop {
-  if [[ "$(which python)" == "$(pwd)/.venv/bin/python" ]]; then
-    deactivate
+  if [ -n "$VIRTUAL_ENV" ]; then
+    printf "deactivate" | pbcopy
+    echo "To stop, execute: deactivate"
+    echo "  or just paste then enter"
+  else
+    echo "Virtualenv not active in this shell"
   fi
+}
+
+
+#: space
+
+
+#: install dependencies
+function install {
+  install_deps
+}
+
+
+#: show dependencies
+function list {
+  pip list
+}
+
+
+#: lint check
+function check {
+  ruff check pmod
 }
 
 
@@ -49,51 +86,40 @@ function spell {
 
 #: generate the distribution
 function build {
+  if [ -n "$VIRTUAL_ENV" ]; then
+    echo "▶ You already running on python virtual environment..."
+  else
+    printf "source .venv/bin/activate" | pbcopy
+    echo "▶ Activate using: source .venv/bin/activate"
+    echo "  or just paste then enter"
+  fi
   rm -rf dist pmod.egg-info
-  # pip install -q build
-  python -m build
+  "$PIP_BIN" install -q build
+  "$PYTHON_BIN" -m build
 }
 
-#: lint check
-function check {
-  ruff check pmod
+
+#: space
+
+#: show installed python versions
+function versions {
+  pyenv versions
 }
 
-#: prereq
-function prereq {
-  pip install virtualenv
+function ensure_venv {
+  if [ ! -d "$VENV_DIR" ]; then
+    echo "▶ Creating virtual environment..."
+    "$PYENV_PYTHON_BIN" -m venv "$VENV_DIR"
+  fi
 }
 
-#: create venv
-function venv {
-  python -m venv .venv
-}
 
-#: activate venv
-function active {
-  echo "source .venv/bin/activate" | pbcopy
-  echo "paste then enter"
-}
+function install_deps {
+  if [ -f "requirements.txt" ]; then
+    echo "▶ Installing dependencies..."
+    "$PIP_BIN" install -q -r requirements.txt
+  fi
 
-#: deactive venv
-function deactive {
-  deactivate
-}
-
-#: show venv active path
-function path {
-  python -c 'import sys; print(sys.prefix)'
-}
-
-#: show dependencies
-function list {
-  pip list
-}
-
-#: install dependencies
-function install {
-  pip install -r ./requirements.txt
-  
   # printf "%s %s\n" "ipykernel :" "$(pip show ipykernel | grep Version | sed 's/Version: //g')"
   # pip install 'ipykernel==6.29.5' --force-reinstall
 }
@@ -101,4 +127,4 @@ function install {
 
 
 #: space
-___ "$@"
+[ -z "$TASKFILE_EXECUTOR" ] && sq taskfile --execute "$@"

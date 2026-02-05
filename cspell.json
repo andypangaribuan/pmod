@@ -12,6 +12,10 @@
   "dictionaries": ["project"],
   "words": ["andypangaribuan", "pangaribuan", "decompilation", "taskfile"],
   "ignorePaths": [
+    ".vscode/**",
+    ".devcontainer/**",
+    ".venv/**",
+    
     "*.mod",
     "*.sum",
     "*.md",
@@ -24,7 +28,6 @@
     "res/**",
     "grc/**",
     "http-client/**",
-    ".vscode/**",
 
     "requirements.txt"
   ]

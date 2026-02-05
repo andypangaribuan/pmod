@@ -1,5 +1,5 @@
 {
-  "name": "devc-pmod",
+  "name": "pmod-devc",
   "dockerComposeFile": "../compose.yml",
   "service": "devc",
   "shutdownAction": "stopCompose",

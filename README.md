@@ -5,13 +5,13 @@ Python Extended Module. Focus on simplicity, speed and safety.
 ## Use
 
 ```sh
-pip install git+https://github.com/andypangaribuan/pmod@v0.0.24
+pip install git+https://github.com/andypangaribuan/pmod@v0.0.25
 ```
 
 or using requirements.txt
 
 ```sh
-pmod @ git+https://github.com/andypangaribuan/pmod@v0.0.24
+pmod @ git+https://github.com/andypangaribuan/pmod@v0.0.25
 ```
 
 ## When error occurs

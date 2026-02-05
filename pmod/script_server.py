@@ -17,22 +17,22 @@ from pmod.script_server_user_func import ScriptServerUserFunc
 
 
 class ScripServer:
-    __util                   : ScriptServerUtil                              = ScriptServerUtil()
-    __conf                   : ScriptServerConf | None                       = None
-    __stg_env                : ScriptServerEnv | None                        = None
-    __rc_env                 : ScriptServerEnv | None                        = None
-    __prod_env               : ScriptServerEnv | None                        = None
-    __after_clone_func       : Callable[[ScriptServerUserFunc], None] | None = None
-    __add_build_arg_func     : Callable[[str, str], str] | None              = None
-    __repository_type        : str | None                                    = None
-    __selected_env           : ScriptServerEnv | None                        = None
-    __selected_env_code      : str | None                                    = None
-    __workflow_env_code      : str | None                                    = None
-    __current_image_version  : Version | None                                = None
-    __below_env_image_version: Version | None                                = None
-    __above_env_image_version: Version | None                                = None
-    __prefer_next_version    : Version | None                                = None
-    __user_next_version      : Version | None                                = None
+    __util: ScriptServerUtil = ScriptServerUtil()
+    __conf: ScriptServerConf | None = None
+    __stg_env: ScriptServerEnv | None = None
+    __rc_env: ScriptServerEnv | None = None
+    __prod_env: ScriptServerEnv | None = None
+    __after_clone_func: Callable[[ScriptServerUserFunc], None] | None = None
+    __add_build_arg_func: Callable[[str, str], str] | None = None
+    __repository_type: str | None = None
+    __selected_env: ScriptServerEnv | None = None
+    __selected_env_code: str | None = None
+    __workflow_env_code: str | None = None
+    __current_image_version: Version | None = None
+    __below_env_image_version: Version | None = None
+    __above_env_image_version: Version | None = None
+    __prefer_next_version: Version | None = None
+    __user_next_version: Version | None = None
 
     def __init__(self,
                  conf: ScriptServerConf,
@@ -104,6 +104,8 @@ class ScripServer:
             self.__workflow_env_code = 'sr'
         elif self.__stg_env is not None:
             self.__workflow_env_code = 's'
+        elif self.__prod_env is not None:
+            self.__workflow_env_code = 'p'
         else:
             print('\n🔴 no matching workflow env')
             exit()
@@ -205,6 +207,8 @@ class ScripServer:
                 self.__selected_env_code = self.__util.choose('[ask] choose environment?', ['stg', 'rc'])
             case 's':
                 self.__selected_env_code = self.__util.choose('[ask] choose environment?', ['stg'])
+            case 'p':
+                self.__selected_env_code = self.__util.choose('[ask] choose environment?', ['prod'])
 
         if self.__selected_env_code is None:
             print('\n🔴 no environment selected, terminated!')
@@ -475,6 +479,14 @@ class ScripServer:
                     self.__below_env_image_version.micro > self.__current_image_version.micro     # O.O.X._
                 ):
                     self.__prefer_next_version = Version(f'{self.__below_env_image_version.major}.{self.__below_env_image_version.minor}.{self.__below_env_image_version.micro}')
+                    return
+
+                self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
+                return
+
+            case 'p: prod':
+                if self.__current_image_version is None:
+                    self.__prefer_next_version = Version(f'{stg_start_version.major}.{stg_start_version.minor}.{stg_start_version.micro}')
                     return
 
                 self.__prefer_next_version = self.__util.increase_version(self.__current_image_version)
