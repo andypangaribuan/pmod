@@ -8,6 +8,4 @@ pip install psycopg2
 pip install -q -r requirements.txt
 
 "cmd + shift + p" ▶ >Python: Select Interpreter
-
-
 then select the ./.venv/bin/python
