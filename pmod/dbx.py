@@ -15,7 +15,7 @@ class DBX:
     __conn   : dict       = {}
     __conn_tz: str | None = None
 
-    def __init__(self, name: str = None, host: str = None, port: str = None, usr: str = None, pwd: str = None, tz: str = None, kv: dict = None, prefix: str = None):
+    def __init__(self, name: str|None = None, host: str|None = None, port: str|None = None, usr: str|None = None, pwd: str|None = None, tz: str|None = None, kv: dict|None = None, prefix: str|None = None):
         if kv is not None and prefix is not None:
             name = kv[f'{prefix}_NAME']
             host = kv[f'{prefix}_HOST']
