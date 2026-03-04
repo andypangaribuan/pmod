@@ -56,6 +56,5 @@
   "merge-conflict.autoNavigateNextConflict.enabled": true,
   "merge-conflict.diffViewPosition": "Current",
   "git.mergeEditor": true,
-  "terminal.integrated.scrollback": 1000000,
-  "python-envs.pythonProjects": []
+  "terminal.integrated.scrollback": 1000000
 }

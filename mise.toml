@@ -1,2 +1,4 @@
+# mise install
+
 [tools]
-python = "3.13.11"
+python = "3.13.12"

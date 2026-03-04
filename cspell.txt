@@ -5,6 +5,15 @@ hostfs
 jons
 resolv
 grpclib
-
+grpcio
+psycopg
+ipykernel
+pyproject
+buildx
+pygments
 bsource
 btarget
+betterproto
+jsonpickle
+venv
+devc

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright (c) 2026.
 # Created by Andy Pangaribuan. All Rights Reserved.
@@ -6,19 +6,11 @@
 # licenses restricting copying, distribution and decompilation.
 
 
-# PYENV_PYTHON_VERSION=3.13.3
-PYENV_PYTHON_VERSION=3.13.11
-PYENV_PYTHON_BIN="$HOME/.pyenv/versions/$PYENV_PYTHON_VERSION/bin/python"
-
-VENV_DIR=".venv"
-PYTHON_BIN="$(pwd)/$VENV_DIR/bin/python"
-PIP_BIN="$(pwd)/$VENV_DIR/bin/pip"
-
-
 #: run python virtual env #: opt: --fresh (delete .venv directory first), --no-install (without installing the dependencies requirements.txt)
 function run {
   if [[ $1 == "--fresh" || $2 == "--fresh" ]]; then
-    rm -rf "$VENV_DIR"
+    echo "▶ removing .venv directory..."
+    rm -rf .venv
 	fi
 
   ensure_venv
@@ -27,9 +19,9 @@ function run {
     install_deps
   fi
 
-  echo "▶ Version: $("$PYTHON_BIN" --version)"
+  echo "▶ Version: $(python --version)"
 
-  if [ -n "$VIRTUAL_ENV" ]; then
+  if [ -n .venv ]; then
     echo "▶ You already running on python virtual environment..."
   else
     printf "source .venv/bin/activate" | pbcopy
@@ -42,17 +34,22 @@ function run {
   echo "  cmd + shift + p "
   echo "  >Python: Select Interpreter"
   echo "  then select the ./.venv/bin/python"
+  echo ""
+  echo "▶ Activate the virtualenv on your current terminal"
+  printf "source .venv/bin/activate" | pbcopy
+  echo "  execute: source .venv/bin/activate"
+  echo "  or just paste then enter"
 }
 
 
 #: stop python virtual env
 function stop {
-  if [ -n "$VIRTUAL_ENV" ]; then
+  if [ -n .venv ]; then
     printf "deactivate" | pbcopy
     echo "To stop, execute: deactivate"
     echo "  or just paste then enter"
   else
-    echo "Virtualenv not active in this shell"
+    echo "Virtual env not active in this shell"
   fi
 }
 
@@ -68,7 +65,7 @@ function install {
 
 #: show dependencies
 function list {
-  pip list
+  .venv/bin/pip list
 }
 
 
@@ -86,7 +83,7 @@ function spell {
 
 #: generate the distribution
 function build {
-  if [ -n "$VIRTUAL_ENV" ]; then
+  if [ -n .venv ]; then
     echo "▶ You already running on python virtual environment..."
   else
     printf "source .venv/bin/activate" | pbcopy
@@ -94,8 +91,8 @@ function build {
     echo "  or just paste then enter"
   fi
   rm -rf dist pmod.egg-info
-  "$PIP_BIN" install -q build
-  "$PYTHON_BIN" -m build
+  .venv/bin/pip install -q build
+  python -m build
 }
 
 
@@ -107,17 +104,17 @@ function versions {
 }
 
 function ensure_venv {
-  if [ ! -d "$VENV_DIR" ]; then
+  if [ ! -d .venv ]; then
     echo "▶ Creating virtual environment..."
-    "$PYENV_PYTHON_BIN" -m venv "$VENV_DIR"
+    python -m venv .venv
   fi
 }
 
 
 function install_deps {
-  if [ -f "requirements.txt" ]; then
+  if [ -f requirements.txt ]; then
     echo "▶ Installing dependencies..."
-    "$PIP_BIN" install -q -r requirements.txt
+    .venv/bin/pip install -q -r requirements.txt
   fi
 
   # printf "%s %s\n" "ipykernel :" "$(pip show ipykernel | grep Version | sed 's/Version: //g')"
