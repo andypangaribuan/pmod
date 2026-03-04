@@ -24,6 +24,7 @@ dependencies = [
     "packaging==24.1",
     "unsync==1.4.0",
     "betterproto==1.2.5",
+    "betterproto[compiler]==1.2.5",
     "jsonpickle==4.1.1"
 ]
 
